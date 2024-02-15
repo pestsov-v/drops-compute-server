@@ -1,6 +1,3 @@
-import { Typeorm } from "../packages/packages";
-import { NAbstractHttpAdapter } from "../adapters";
-
 export type Voidable<T> = T | void;
 export type Nullable<T> = T | null;
 export type UnknownObject = Record<string, unknown>;
@@ -48,7 +45,7 @@ export type UTCDate = {
 export type KeyStringLiteralBuilder<T> = T extends Record<string, unknown>
   ? {
       [K in keyof T]: T[K] extends Record<string, unknown>
-        ? `${string & K}:${KeyStringLiteralBuilder<T[K]>}`
+        ? `${string & K}.${KeyStringLiteralBuilder<T[K]>}`
         : `${string & K}`;
     }[keyof T]
   : string;

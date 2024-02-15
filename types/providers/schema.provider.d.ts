@@ -1,5 +1,5 @@
-import { NSchemaLoader } from '../loaders';
-import { FnObject, UnknownObject } from '../utility';
+import { NSchemaLoader } from "../loaders";
+import { FnObject, UnknownObject } from "../utility";
 
 export interface ISchemaProvider {
   getMongoRepository<T extends FnObject = FnObject>(): T;
@@ -8,11 +8,15 @@ export interface ISchemaProvider {
   getAnotherValidator<T>(name: string): T;
   getTypeormRepository<T>(): T;
   getAnotherTypeormRepository<T>(name: string): T;
-  getResource(resource: string, substitutions?: Record<string, string>, language?: string): string;
+  getResource(
+    resource: string,
+    substitutions?: Record<string, string> | undefined | null,
+    language?: string
+  ): string;
   getAnotherResource(
     name: string,
     resource: string,
-    substitutions?: Record<string, string>,
+    substitutions?: Record<string, string> | undefined | null,
     language?: string
   ): string;
 }

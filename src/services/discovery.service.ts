@@ -1,12 +1,24 @@
-import { Packages, AbstractDiscoveryService, IAbstractDiscoveryService } from '@Packages';
+import {
+  Packages,
+  AbstractDiscoveryService,
+  IAbstractDiscoveryService,
+} from "@Packages";
 const { injectable } = Packages.inversify;
 
-import { AbstractService } from './abstract.service';
+import { AbstractService } from "./abstract.service";
 
-import type { IDiscoveryService, NAbstractService, NDiscoveryService } from '@Core/Types';
+import type {
+  AnyObject,
+  IDiscoveryService,
+  NAbstractService,
+  NDiscoveryService,
+} from "@Core/Types";
 
 @injectable()
-export class DiscoveryService extends AbstractService implements IDiscoveryService {
+export class DiscoveryService
+  extends AbstractService
+  implements IDiscoveryService
+{
   protected readonly _SERVICE_NAME = DiscoveryService.name;
   protected _serverTag: string | undefined;
   private _abstractDiscoveryService: IAbstractDiscoveryService | undefined;
@@ -16,7 +28,7 @@ export class DiscoveryService extends AbstractService implements IDiscoveryServi
 
   protected async init(): Promise<boolean> {
     this._abstractDiscoveryService = new AbstractDiscoveryService();
-    this._abstractDiscoveryService.setConfigSlice('server');
+    this._abstractDiscoveryService.setConfigSlice("server");
 
     try {
       await this._abstractDiscoveryService.init();
@@ -30,7 +42,7 @@ export class DiscoveryService extends AbstractService implements IDiscoveryServi
 
   private get _absDiscoveryService(): IAbstractDiscoveryService {
     if (!this._abstractDiscoveryService) {
-      throw new Error('Abstract discovery service not initialize.');
+      throw new Error("Abstract discovery service not initialize.");
     }
 
     return this._abstractDiscoveryService;
@@ -44,7 +56,10 @@ export class DiscoveryService extends AbstractService implements IDiscoveryServi
     this._emitter.emit(`service:${this._SERVICE_NAME}:reload`);
   }
 
-  public on(event: NDiscoveryService.Event, listener: NAbstractService.Listener): void {
+  public on(
+    event: NDiscoveryService.Event,
+    listener: NAbstractService.Listener
+  ): void {
     this._emitter.on(event, listener);
   }
 
@@ -57,7 +72,7 @@ export class DiscoveryService extends AbstractService implements IDiscoveryServi
     return this._absDiscoveryService.getMandatory(name);
   }
 
-  public getString(name: string, def: string): string {
+  public getString<C extends AnyObject>(name: string, def: string): string {
     return this._absDiscoveryService.getString(name, def);
   }
 
@@ -90,26 +105,26 @@ export class DiscoveryService extends AbstractService implements IDiscoveryServi
   }
 
   public getSchemaMandatory<T>(name: string): T {
-    return this._absDiscoveryService.getMandatory<T>(`schema:${name}`);
+    return this._absDiscoveryService.getMandatory<T>(`schema.${name}`);
   }
 
   public getSchemaString(name: string, def: string): string {
-    return this._absDiscoveryService.getString(`schema:${name}`, def);
+    return this._absDiscoveryService.getString(`schema.${name}`, def);
   }
 
   public getSchemaNumber(name: string, def: number): number {
-    return this._absDiscoveryService.getNumber(`schema:${name}`, def);
+    return this._absDiscoveryService.getNumber(`schema.${name}`, def);
   }
 
   public getSchemaBoolean(name: string, def: boolean): boolean {
-    return this._absDiscoveryService.getBoolean(`schema:${name}`, def);
+    return this._absDiscoveryService.getBoolean(`schema.${name}`, def);
   }
 
   public getSchemaArray<T>(name: string, def: Array<T>): Array<T> {
-    return this._absDiscoveryService.getArray<T>(`schema:${name}`, def);
+    return this._absDiscoveryService.getArray<T>(`schema.${name}`, def);
   }
 
   public async getSchemaBuffer(path: string): Promise<Buffer> {
-    return this._absDiscoveryService.getCertificateBuffer(`schema:${path}`);
+    return this._absDiscoveryService.getCertificateBuffer(`schema.${path}`);
   }
 }

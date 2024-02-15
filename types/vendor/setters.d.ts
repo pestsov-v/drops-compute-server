@@ -98,10 +98,10 @@ export type ValidateStructure<T extends any> = T;
 
 export type DomainDocuments = {
   router?: RouterStructure<string>;
-  controller?: ControllerStructure;
+  controller?: ControllerStructure<AnyObject>;
   emitter?: EmitterStructure<string>;
   wsListener?: WsListenerStructure<string>;
-  typeormSchema?: TypeormSchemaStructure<string, unknown>;
+  typeormSchema?: TypeormSchemaStructure<AnyObject, AnyObject>;
   typeormRepo?: TypeormRepoStructure<Record<string, unknown>>;
   dictionaries?:
     | DictionaryStructure<string, ExtendedRecordObject>

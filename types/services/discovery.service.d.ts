@@ -1,4 +1,5 @@
-import { IAbstractService, NAbstractService } from './abstract.service';
+import { IAbstractService, NAbstractService } from "./abstract.service";
+import type { AnyObject } from "../utility";
 
 export interface IDiscoveryService extends IAbstractService {
   readonly serverTag: string;
@@ -6,7 +7,7 @@ export interface IDiscoveryService extends IAbstractService {
   on(event: NDiscoveryService.Event, listener: NAbstractService.Listener): void;
   reloadConfigurations(): Promise<void>;
 
-  getMandatory<T>(name: string): T;
+  getMandatory<T>(name: name): T;
   getString(name: string, def: string): string;
   getNumber(name: string, def: number): number;
   getBoolean(name: string, def: boolean): boolean;
@@ -14,21 +15,45 @@ export interface IDiscoveryService extends IAbstractService {
   getCertificateBuffer(path: string): Promise<Buffer>;
   getCertificateString(path: string): Promise<string>;
 
-  getSchemaMandatory<T>(name: string): T;
-  getSchemaString(name: string, def: string): string;
-  getSchemaNumber(name: string, def: number): number;
-  getSchemaBoolean(name: string, def: boolean): boolean;
-  getSchemaArray<T>(name: string, def: Array<T>): Array<T>;
-  getSchemaBuffer(path: string): Promise<Buffer>;
+  getSchemaMandatory<T, C extends AnyObject = AnyObject>(
+    name: NDiscoveryService.KeyConfigLiteralBuilder<C, T>
+  ): T;
+  getSchemaString<C extends AnyObject = AnyObject>(
+    name: NDiscoveryService.KeyConfigLiteralBuilder<C, string>,
+    def: string
+  ): string;
+  getSchemaNumber<C extends AnyObject = AnyObject>(
+    name: NDiscoveryService.KeyConfigLiteralBuilder<C, number>,
+    def: number
+  ): number;
+  getSchemaBoolean<C extends AnyObject = AnyObject>(
+    name: NDiscoveryService.KeyConfigLiteralBuilder<C, boolean>,
+    def: boolean
+  ): boolean;
+  getSchemaArray<T, C extends AnyObject = AnyObject>(
+    name: NDiscoveryService.KeyConfigLiteralBuilder<C, Array<T>>,
+    def: Array<T>
+  ): Array<T>;
+  getSchemaBuffer(
+    path: NDiscoveryService.KeyConfigLiteralBuilder<C, string>
+  ): Promise<Buffer>;
 }
 
 export namespace NDiscoveryService {
-  export type Event = 'service:DiscoveryService:start' | 'service:DiscoveryService:reload';
+  export type Event =
+    | "service:DiscoveryService:start"
+    | "service:DiscoveryService:reload";
 
-  export type EnvType<T = unknown> =
-    | string
-    | number
-    | boolean
-    | Array<string | number | boolean | T>
-    | T;
+  export type KeyConfigLiteralBuilder<
+    T,
+    F extends string | boolean | number
+  > = T extends Record<string, unknown>
+    ? {
+        [K in keyof T]: T[K] extends F
+          ? `${string & K}`
+          : K extends string
+          ? `${string & K}.${KeyConfigLiteralBuilder<T[K], F>}`
+          : never;
+      }[keyof T]
+    : string;
 }
