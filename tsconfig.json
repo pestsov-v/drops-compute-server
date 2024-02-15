@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "moduleResolution": "node",
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "newLine": "lf",
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noImplicitOverride": false,
+    "skipLibCheck": true,
+    "target": "ESNext",
+    "module": "CommonJS",
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "rootDir": "./src",
+    "paths": {
+      "@common": ["src/common/index.ts"],
+      "@Guards": ["src/utility/guards.ts"],
+      "@CoreSymbols": ["src/ioc/core.ioc.symbols.ts"],
+      "@Core/Types": ["types/index.d.ts"],
+      "@Packages": ["src/packages/packages.ts"],
+      "@Vendor": ["src/vendor/index.ts"]
+    }
+  },
+  "include": ["./src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "src/index.test.ts"],
+}

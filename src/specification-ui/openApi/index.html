@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Swagger UI</title>
+    <link rel="stylesheet" type="text/css" href='/src/core/specification-ui/openApi/swagger-ui.css' />
+    <link rel="icon" type="image/png" href='/src/core/specification-ui/openApi/favicon-32x32.png' sizes="32x32" />
+    <link rel="icon" type="image/png" href='/src/core/specification-ui/openApi/favicon-32x32.png' sizes="16x16" />
+  </head>
+
+  <body>
+    <div id="swagger-ui"></div>
+    <script src='/src/core/specification-ui/openApi/swagger-ui-bundle.js' charset="UTF-8"> </script>
+    <script src='/src/core/specification-ui/openApi/swagger-ui-standalone-preset.js' charset="UTF-8"> </script>
+  <script>
+
+    const url = '/specifications/services/__@service__/openApi/v__@version__/__@language__/openApi.json'
+    window.onload = function () {
+      const ui = SwaggerUIBundle({
+        url: url,
+        dom_id: '#swagger-ui',
+      });
+    };
+  </script>
+  </body>
+</html>
