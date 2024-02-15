@@ -65,37 +65,6 @@ export namespace NSchemaLoader {
 
   export type TypeormEntities = Map<string, Typeorm.EntitySchema<unknown>>;
 
-  export type RouteDocumentationStructure = {
-    [key: string]: {
-      [key in HttpMethod]: {
-        release: string;
-        lns: {
-          [key: string]: {
-            summary?: string;
-            description?: string;
-          };
-        };
-      };
-    };
-  };
-
-  export type RouteLanguageDocumentationStructure = {
-    summary?: string;
-    description?: string;
-  };
-
-  export type RoutesCollectionPayload = {
-    release: string;
-    languages: Map<string, RouteLanguageDocumentationStructure>;
-  };
-  export type RoutesCollection = Map<string, RoutesCollectionPayload>;
-
-  export type DocumentationStructure = {
-    common?: {
-      routes?: RouteDocumentationStructure;
-    };
-  };
-
   export type DomainStorage = {
     routes: Map<string, NSchemaLoader.Route>;
     controllers: Map<string, NAbstractHttpAdapter.Handler>;

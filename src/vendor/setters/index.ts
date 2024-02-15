@@ -71,15 +71,15 @@ export const setWsListener = <T extends string>(
   return structure;
 };
 
-export const setController = <T extends string>(
+export const setController = <T extends AnyObject>(
   structure: ControllerStructure<T>
 ): ControllerStructure<T> => {
   return structure;
 };
 
-export const setTypeormRepo = <T extends AnyObject>(
-  structure: TypeormRepoStructure<T>
-): TypeormRepoStructure<T> => {
+export const setTypeormRepo = <S, T extends AnyObject>(
+  structure: TypeormRepoStructure<S, T>
+): TypeormRepoStructure<S, T> => {
   return structure;
 };
 

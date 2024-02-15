@@ -1,14 +1,45 @@
-import { AnyObject, ExtendedRecordObject, HttpMethod } from "../utility";
-import { NAbstractHttpAdapter } from "../adapters";
+import {
+  AnyObject,
+  ExtendedRecordObject,
+  HttpMethod,
+  ModeObject,
+  StringObject,
+  UnknownObject,
+  Voidable,
+} from "../utility";
 import { NSessionService } from "../services";
 import { NTypeormProvider } from "../providers";
 import { NDocumentationLoader } from "../loaders";
+import { NAbstractHttpAdapter } from "../adapters";
+import { Typeorm } from "../packages/packages";
 
-export type ControllerStructure<T extends string> = {
-  [key in T]: NAbstractHttpAdapter.Handler;
+export type Controller<
+  REQ_BODY extends UnknownObject | void = UnknownObject | void,
+  REQ_PARAMS extends Voidable<StringObject> = Voidable<StringObject> | void,
+  REQ_HEADERS extends Voidable<StringObject> = Voidable<StringObject> | void,
+  REQ_QUERIES extends Voidable<ModeObject> = Voidable<ModeObject> | void,
+  RES_BODY extends Voidable<AnyObject> = Voidable<AnyObject> | void,
+  RES_HEADERS extends Voidable<StringObject> = Voidable<StringObject> | void,
+  SESSION_INFO extends AnyObject | void = AnyObject | void
+> = NAbstractHttpAdapter.Handler<
+  REQ_BODY,
+  REQ_PARAMS,
+  REQ_HEADERS,
+  REQ_QUERIES,
+  RES_BODY,
+  RES_HEADERS,
+  SESSION_INFO
+>;
+
+export type ControllerStructure<
+  T extends Record<string, Controller> = Record<string, Controller>
+> = {
+  [key in keyof T]: T[key];
 };
-
-export type RouterStructure<T extends string, C extends AnyObject> = {
+export type RouterStructure<
+  T extends string,
+  C extends Record<string, Controller>
+> = {
   [key in T]: {
     [key in HttpMethod]?: {
       handler: keyof C;
@@ -46,15 +77,28 @@ export type TypeormSchemaStructure<T extends string, S> = {
   getSchema: NTypeormProvider.SchemaFn<S>;
 };
 
-export type TypeormRepoStructure<T extends AnyObject> = {
-  [key in keyof T]: T[key];
+export type TypeormRequester<ARGS = void, RESULT = void> = (
+  args: ARGS
+) => Promise<RESULT>;
+
+export type TypeormRepoStructure<
+  S,
+  T extends Record<string, TypeormRequester> = Record<string, TypeormRequester>
+> = {
+  [K in keyof T]: T[K] extends (data: infer D, ...args: infer A) => infer R
+    ? (
+        provider: Typeorm.Repository<S>,
+        agents: NAbstractHttpAdapter.Agents["baseAgent"],
+        data: D
+      ) => R
+    : T[K];
 };
 
 export type ValidateStructure<T extends any> = T;
 
 export type DomainDocuments = {
   router?: RouterStructure<string>;
-  controller?: ControllerStructure<string>;
+  controller?: ControllerStructure;
   emitter?: EmitterStructure<string>;
   wsListener?: WsListenerStructure<string>;
   typeormSchema?: TypeormSchemaStructure<string, unknown>;

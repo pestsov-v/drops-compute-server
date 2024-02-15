@@ -1,3 +1,6 @@
+import { Typeorm } from "../packages/packages";
+import { NAbstractHttpAdapter } from "../adapters";
+
 export type Voidable<T> = T | void;
 export type Nullable<T> = T | null;
 export type UnknownObject = Record<string, unknown>;
@@ -6,6 +9,17 @@ export type AnyObject = Record<string, any>;
 export type AnyFunction = (...args: any[]) => any;
 export type FnObject = Record<string, AnyFunction>;
 export type VoidableStrOrArrStr = string | string[] | void;
+export type ModeObject<T = (string | number | boolean)[]> = {
+  [key in string]:
+    | T
+    | string
+    | string[]
+    | number
+    | number[]
+    | boolean
+    | boolean[]
+    | (string | number | boolean)[];
+};
 
 export const enum BoolYesNo {
   YES = "Y",
@@ -30,3 +44,11 @@ export type UTCDate = {
   time: string;
   utc: string;
 };
+
+export type KeyStringLiteralBuilder<T> = T extends Record<string, unknown>
+  ? {
+      [K in keyof T]: T[K] extends Record<string, unknown>
+        ? `${string & K}:${KeyStringLiteralBuilder<T[K]>}`
+        : `${string & K}`;
+    }[keyof T]
+  : string;

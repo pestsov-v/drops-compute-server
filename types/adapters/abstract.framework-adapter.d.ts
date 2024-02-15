@@ -7,9 +7,17 @@ import {
 import { NContextService, NScramblerService } from "../services";
 
 import { Express, Fastify } from "../packages/packages";
-import { StringObject, UnknownObject, Voidable } from "../";
+import {
+  AnyObject,
+  HttpMethod,
+  ModeObject,
+  StringObject,
+  UnknownObject,
+  Voidable,
+} from "../";
 import { NSchemaLoader } from "../loaders";
 import { Helpers } from "../providers/schema.provider";
+import { ResponseFormat } from "../../src/.test_schema/domains/test.controller";
 
 export interface IAbstractFrameworkAdapter {
   start(schema: NSchemaLoader.Services): Promise<void>;
@@ -92,53 +100,79 @@ export namespace NAbstractHttpAdapter {
     BODY = UnknownObject,
     PARAMS extends StringObject = StringObject,
     HEADERS extends StringObject = StringObject,
-    K extends FrameworkKind = FrameworkKind
-  > = K extends "express"
-    ? any
-    : K extends "fastify"
-    ? Fastify.SchemaRequest<BODY, PARAMS, HEADERS>
-    : never;
+    QUERIES extends ModeObject | void = ModeObject | void
+  > = {
+    url: string;
+    headers: HEADERS extends StringObject ? HEADERS : void;
+    method: HttpMethod;
+    path: string;
+    params: PARAMS extends StringObject ? PARAMS : void;
+    body: BODY;
+    query: QUERIES;
+  };
 
   export type ResponseFormat = "json" | "redirect" | "status";
 
-  export interface BaseResponsePayload {
-    format: ResponseFormat;
-    responseType?: string;
-    headers?: Record<string, string>;
-  }
-
-  export interface RedirectResponsePayload extends BaseResponsePayload {
-    format: "redirect";
-    type?: "redirect";
-    StatusCode?: number;
+  export type RedirectFormatResponse<
+    HEADERS extends Voidable<StringObject> = void
+  > = {
+    headers?: HEADERS;
+    statusCode?: number;
     url: string;
-  }
-  export interface StatusResponsePayload extends BaseResponsePayload {
-    format: "status";
+  };
+  export type StatusFormatResponse<
+    HEADERS extends Voidable<StringObject> = void
+  > = {
+    headers?: HEADERS;
     statusCode?: number;
-  }
-  export interface JSONResponsePayload extends BaseResponsePayload {
-    format: "json";
-    type?: "OK";
+  };
+
+  export type JsonFormatType = "OK" | "ERROR" | "EXCEPTION" | "VALIDATION";
+
+  export type JsonFormatResponse<
+    BODY = AnyObject,
+    HEADERS extends Voidable<StringObject> = void
+  > = {
+    headers?: HEADERS;
     statusCode?: number;
-    data?: UnknownObject;
-  }
+    type: JsonFormatType;
+    data: BODY;
+  };
 
-  export type SchemaResponse =
-    | RedirectResponsePayload
-    | StatusResponsePayload
-    | JSONResponsePayload;
+  export type SchemaResponse<
+    BODY extends AnyObject | void = void,
+    HEADERS extends Voidable<StringObject> = void,
+    T extends ResponseFormat = ResponseFormat
+  > = {
+    format: T;
+    payload: ResponsePayload<BODY, HEADERS, T>;
+  };
+  export type ResponsePayload<
+    RESULT extends AnyObject | void = void,
+    HEADERS extends Voidable<StringObject> = void,
+    T extends ResponseFormat = ResponseFormat
+  > = T extends "redirect"
+    ? RedirectFormatResponse<HEADERS>
+    : T extends "status"
+    ? StatusFormatResponse<HEADERS>
+    : T extends "json"
+    ? JsonFormatResponse<RESULT, HEADERS>
+    : never;
 
-  export type Handler = <
-    BODY = UnknownObject,
-    PARAMS extends StringObject = StringObject,
-    HEADERS extends StringObject = StringObject,
-    K extends FrameworkKind
-  >(
-    request: SchemaRequest<BODY, PARAMS, HEADERS, K>,
+  export type Handler<
+    REQ_BODY extends UnknownObject | void = UnknownObject | void,
+    REQ_PARAMS extends Voidable<StringObject> = Voidable<StringObject> | void,
+    REQ_HEADERS extends Voidable<StringObject> = Voidable<StringObject> | void,
+    REQ_QUERIES extends Voidable<ModeObject> = Voidable<ModeObject> | void,
+    RES_BODY extends Voidable<AnyObject> = Voidable<AnyObject> | void,
+    RES_HEADERS extends Voidable<StringObject> = Voidable<StringObject> | void,
+    SESSION_INFO extends AnyObject | void = AnyObject | void,
+    T extends ResponseFormat = ResponseFormat
+  > = (
+    request: SchemaRequest<REQ_BODY, REQ_PARAMS, REQ_HEADERS, REQ_QUERIES>,
     agents: Agents,
-    context: Context
-  ) => Promise<Voidable<SchemaResponse>>;
+    context: Context<SESSION_INFO>
+  ) => Promise<Voidable<SchemaResponse<RES_BODY, RES_HEADERS, T>>>;
 
   export type FailSchemaParameter = "service" | "domain" | "action";
 

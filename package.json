@@ -1,6 +1,6 @@
 {
   "name": "@chaminjector/calculator",
-  "version": "0.0.4",
+  "version": "0.0.15",
   "description": "Compute server for @chaminjector platform backend schemas.",
   "main": "index.js",
   "types": "index.d.ts",

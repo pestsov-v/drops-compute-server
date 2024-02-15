@@ -1,4 +1,4 @@
-import { Packages, querystring } from "@Packages";
+import { Packages } from "@Packages";
 const { injectable, inject } = Packages.inversify;
 const { fastify } = Packages.fastify;
 const { v4 } = Packages.uuid;
@@ -26,6 +26,7 @@ import {
   NScramblerService,
   ILocalizationService,
   IIntegrationAgent,
+  ModeObject,
 } from "@Core/Types";
 import { ResponseType, SchemaHeaders, StatusCode } from "@common";
 import { Helpers } from "../../utility/helpers";
@@ -281,7 +282,7 @@ export class FastifyHttpAdapter
       );
     }
 
-    let queries: Record<string, unknown> = {};
+    let queries: ModeObject = {};
     if (req.query) {
       queries = Helpers.parseQueryParams(Object.assign({}, req.query));
     }
@@ -388,25 +389,26 @@ export class FastifyHttpAdapter
           return res.status(StatusCode.NO_CONTENT).send();
         }
 
-        if (result.headers) res.headers(result.headers);
+        if (result.payload.headers) res.headers(result.payload.headers);
 
-        switch (result.format) {
-          case "json":
-            return res.status(result.statusCode || StatusCode.SUCCESS).send({
-              format: result.format,
-              type: result.type,
-              data: result.data,
+        if (Guards.isJsonResponse(result.payload) && result.format === "json") {
+          return res
+            .status(result.payload.statusCode || StatusCode.SUCCESS)
+            .send({
+              type: result.payload.type,
+              data: result.payload.data,
             });
-          case "status":
-            return res
-              .status(result.statusCode || StatusCode.NO_CONTENT)
-              .send();
-          case "redirect":
-            return res
-              .status(result.StatusCode || StatusCode.FOUND)
-              .redirect(result.url);
-          default:
-            throw Helpers.switchChecker(result);
+        } else if (
+          Guards.isRedirectResponse(result.payload) &&
+          result.format === "redirect"
+        ) {
+          return res
+            .status(result.payload.statusCode || StatusCode.FOUND)
+            .redirect(result.payload.url);
+        } else {
+          return res
+            .status(result.payload.statusCode || StatusCode.NO_CONTENT)
+            .send();
         }
       });
     } catch (e) {

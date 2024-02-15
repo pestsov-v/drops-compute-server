@@ -1,34 +1,35 @@
-import { setController } from '@Vendor';
-import { NTest } from './test';
-import {
-  Agents,
-  Context,
-  NValidatorBaseOperation,
-  SchemaRequest,
-  SchemaResponse,
-} from '@Core/Types';
+import { Controller } from "@Core/Types";
+import { setController } from "@Vendor";
 
-export const testController = setController({
-  sendTest: async (
-    request: SchemaRequest,
-    agents: Agents,
-    context: Context
-  ): Promise<any> => {
-    const { baseAgent } = agents;
+export type SetContr = {
+  create: Controller<
+    { str: string },
+    { par: string },
+    { local: string },
+    { query: boolean },
+    { str: string },
+    { bas: string }
+  >;
+};
 
-    try {
-      // await agents.schemaAgent
-      //   .getValidator<NTest.EntityValidator>('in')
-      //   .sendTest()
-      //   .validate(request.body, { abortEarly: false });
-    } catch (e) {
+export const testController = setController<SetContr>({
+  create: async (request, agents) => {
+    if (1 === 1) {
+      request.body.str;
+      request.headers.local;
+      request.params.par;
+      request.query.query;
     }
 
     return {
-      format: 'json',
-      type: 'OK',
-      data: {
-        sass: 'assa',
+      format: "json",
+      payload: {
+        headers: {
+          bas: "asas",
+        },
+        data: {
+          str: 312,
+        },
       },
     };
   },

@@ -150,10 +150,7 @@ export class SchemaLoader implements ISchemaLoader {
     sStorage.set(domain, dStorage);
   }
 
-  private _setController(
-    domain: string,
-    structure: ControllerStructure<string>
-  ): void {
+  private _setController(domain: string, structure: ControllerStructure): void {
     const storage = this._domains.get(domain);
     if (!storage) {
       this._setDomain(domain);

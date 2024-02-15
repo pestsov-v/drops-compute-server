@@ -2,7 +2,7 @@ import { Packages } from "@Packages";
 const { colors } = Packages.colors;
 const { format } = Packages.dateFns;
 
-import { Color, UTCDate, NLoggerService } from "@Core/Types";
+import { Color, UTCDate, NLoggerService, ModeObject } from "@Core/Types";
 
 export class Helpers {
   public static addBrackets(str: string): string {
@@ -87,22 +87,19 @@ export class Helpers {
     };
   }
 
-  public static parseQueryParams(
-    query: Record<string, unknown>
-  ): Record<string, unknown> {
-    return Object.keys(query).reduce(
-      (parsedQuery: Record<string, unknown>, key: string) => {
-        const value = query[key];
-        parsedQuery[key] = Array.isArray(value)
-          ? value.map(Helpers.parseValue)
-          : Helpers.parseValue(value);
-        return parsedQuery;
-      },
-      {}
-    );
+  public static parseQueryParams(query: ModeObject): ModeObject {
+    return Object.keys(query).reduce((parsedQuery: ModeObject, key: string) => {
+      const value = query[key];
+      parsedQuery[key] = Array.isArray(value)
+        ? value.map(Helpers.parseValue)
+        : Helpers.parseValue(value);
+      return parsedQuery;
+    }, {});
   }
 
-  public static parseValue(value: unknown): unknown {
+  public static parseValue(
+    value: string | number | boolean
+  ): string | number | boolean {
     if (!isNaN(Number(value))) {
       return Number(value);
     } else if (value === "true") {
