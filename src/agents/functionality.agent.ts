@@ -1,12 +1,15 @@
-import { Packages } from '@Packages';
+import { Packages } from "@Packages";
 const { injectable, inject } = Packages.inversify;
 const { v4 } = Packages.uuid;
-import { container } from '../ioc/core.ioc';
-import { CoreSymbols } from '@CoreSymbols';
+import { container } from "../ioc/core.ioc";
+import { CoreSymbols } from "@CoreSymbols";
 
 import {
-  Joi, Jwt, Mongoose,
-  Nullable, UnknownObject,
+  Joi,
+  Jwt,
+  Mongoose,
+  Nullable,
+  UnknownObject,
   IDiscoveryService,
   IExceptionProvider,
   IFunctionalityAgent,
@@ -16,12 +19,11 @@ import {
   IScramblerService,
   ISessionService,
   IValidatorError,
-  IValidatorProvider,
   NExceptionProvider,
   NFunctionalityAgent,
   NScramblerService,
-  NValidatorProvider,
-} from '@Core/Types';
+  NSchemaService,
+} from "@Core/Types";
 
 @injectable()
 export class FunctionalityAgent implements IFunctionalityAgent {
@@ -101,7 +103,10 @@ export class FunctionalityAgent implements IFunctionalityAgent {
       populate: async <TRawDocType>(
         model: string,
         docs: Array<Mongoose.Docs<TRawDocType>>,
-        options: Mongoose.PopulateOptions | Array<Mongoose.PopulateOptions> | string
+        options:
+          | Mongoose.PopulateOptions
+          | Array<Mongoose.PopulateOptions>
+          | string
       ): Promise<Mongoose.PopulateResult<TRawDocType>> => {
         return container
           .get<IMongodbProvider>(CoreSymbols.MongodbProvider)
@@ -143,7 +148,10 @@ export class FunctionalityAgent implements IFunctionalityAgent {
           .get<IMongodbProvider>(CoreSymbols.MongodbProvider)
           .find<TRawDocType>(model, filter, projection, options);
       },
-      findById: async <TRawDocType, ResultDoc = Mongoose.THydratedDocumentType<TRawDocType>>(
+      findById: async <
+        TRawDocType,
+        ResultDoc = Mongoose.THydratedDocumentType<TRawDocType>
+      >(
         model: string,
         id: string,
         projection?: Mongoose.ProjectionType<TRawDocType | null>,
@@ -164,7 +172,12 @@ export class FunctionalityAgent implements IFunctionalityAgent {
       ): Promise<Mongoose.FindByIdAndUpdateResult<ResultDoc>> => {
         return container
           .get<IMongodbProvider>(CoreSymbols.MongodbProvider)
-          .findByIdAndUpdate<TRawDocType, ResultDoc>(model, id, update, options);
+          .findByIdAndUpdate<TRawDocType, ResultDoc>(
+            model,
+            id,
+            update,
+            options
+          );
       },
       findByIdAndDelete: async <
         TRawDocType,
@@ -178,7 +191,10 @@ export class FunctionalityAgent implements IFunctionalityAgent {
           .get<IMongodbProvider>(CoreSymbols.MongodbProvider)
           .findByIdAndDelete<TRawDocType, ResultDoc>(model, id, options);
       },
-      findOne: async <TRawDocType, ResultDoc = Mongoose.THydratedDocumentType<TRawDocType>>(
+      findOne: async <
+        TRawDocType,
+        ResultDoc = Mongoose.THydratedDocumentType<TRawDocType>
+      >(
         model: string,
         filter?: Mongoose.FilterQuery<TRawDocType>,
         projection?: Mongoose.ProjectionType<TRawDocType>,
@@ -212,7 +228,12 @@ export class FunctionalityAgent implements IFunctionalityAgent {
       ): Promise<Mongoose.FindOneAndReplaceResult<ResultDoc>> => {
         return container
           .get<IMongodbProvider>(CoreSymbols.MongodbProvider)
-          .findOneAndReplace<TRawDocType, ResultDoc>(model, filter, replacement, options);
+          .findOneAndReplace<TRawDocType, ResultDoc>(
+            model,
+            filter,
+            replacement,
+            options
+          );
       },
       findOneAndDelete: async <
         TRawDocType,
@@ -226,27 +247,40 @@ export class FunctionalityAgent implements IFunctionalityAgent {
           .get<IMongodbProvider>(CoreSymbols.MongodbProvider)
           .findOneAndDelete<TRawDocType, ResultDoc>(model, filter, options);
       },
-      updateOne: async <TRawDocType, ResultDoc = Mongoose.THydratedDocumentType<TRawDocType>>(
+      updateOne: async <
+        TRawDocType,
+        ResultDoc = Mongoose.THydratedDocumentType<TRawDocType>
+      >(
         model: string,
         filter?: Mongoose.FilterQuery<TRawDocType>,
-        update?: Mongoose.UpdateQuery<TRawDocType | Mongoose.UpdateWithAggregationPipeline>,
+        update?: Mongoose.UpdateQuery<
+          TRawDocType | Mongoose.UpdateWithAggregationPipeline
+        >,
         options?: Mongoose.QueryOptions<TRawDocType>
       ): Promise<Mongoose.UpdateOneResult<ResultDoc>> => {
         return container
           .get<IMongodbProvider>(CoreSymbols.MongodbProvider)
           .updateOne<TRawDocType, ResultDoc>(model, filter, update, options);
       },
-      updateMany: async <TRawDocType, ResultDoc = Mongoose.THydratedDocumentType<TRawDocType>>(
+      updateMany: async <
+        TRawDocType,
+        ResultDoc = Mongoose.THydratedDocumentType<TRawDocType>
+      >(
         model: string,
         filter?: Mongoose.FilterQuery<TRawDocType>,
-        update?: Mongoose.UpdateQuery<TRawDocType | Mongoose.UpdateWithAggregationPipeline>,
+        update?: Mongoose.UpdateQuery<
+          TRawDocType | Mongoose.UpdateWithAggregationPipeline
+        >,
         options?: Mongoose.QueryOptions<TRawDocType>
       ): Promise<Mongoose.UpdateManyResult<ResultDoc>> => {
         return container
           .get<IMongodbProvider>(CoreSymbols.MongodbProvider)
           .updateMany<TRawDocType, ResultDoc>(model, filter, update, options);
       },
-      replaceOne: async <TRawDocType, ResultDoc = Mongoose.THydratedDocumentType<TRawDocType>>(
+      replaceOne: async <
+        TRawDocType,
+        ResultDoc = Mongoose.THydratedDocumentType<TRawDocType>
+      >(
         model: string,
         filter?: Mongoose.FilterQuery<TRawDocType>,
         replacement?: TRawDocType | Mongoose.AnyObject,
@@ -254,7 +288,12 @@ export class FunctionalityAgent implements IFunctionalityAgent {
       ): Promise<Mongoose.ReplaceOneResult<ResultDoc>> => {
         return container
           .get<IMongodbProvider>(CoreSymbols.MongodbProvider)
-          .replaceOne<TRawDocType, ResultDoc>(model, filter, replacement, options);
+          .replaceOne<TRawDocType, ResultDoc>(
+            model,
+            filter,
+            replacement,
+            options
+          );
       },
       deleteOne: async <TRawDocType>(
         model: string,
@@ -283,28 +322,21 @@ export class FunctionalityAgent implements IFunctionalityAgent {
     };
   }
 
-  public get validator(): NFunctionalityAgent.Validator {
-    return {
-      validator: container.get<IValidatorProvider>(CoreSymbols.ValidatorProvider).validator,
-      validate: <T>(map: Joi.ObjectSchema<T>, body: T) => {
-        return container
-          .get<IValidatorProvider>(CoreSymbols.ValidatorProvider)
-          .validate<T>(map, body);
-      },
-    };
-  }
-
   public get scrambler(): NFunctionalityAgent.Scrambler {
     return {
       accessExpiredAt: this._scramblerService.accessExpiredAt,
       refreshExpiredAt: this._scramblerService.refreshExpiredAt,
-      generateAccessToken: <T extends UnknownObject & NScramblerService.SessionIdentifiers>(
+      generateAccessToken: <
+        T extends UnknownObject & NScramblerService.SessionIdentifiers
+      >(
         payload: T,
         algorithm?: Jwt.Algorithm
       ): NScramblerService.ConvertJwtInfo => {
         return this._scramblerService.generateAccessToken(payload, algorithm);
       },
-      generateRefreshToken: <T extends UnknownObject & NScramblerService.SessionIdentifiers>(
+      generateRefreshToken: <
+        T extends UnknownObject & NScramblerService.SessionIdentifiers
+      >(
         payload: T,
         algorithm?: Jwt.Algorithm
       ): NScramblerService.ConvertJwtInfo => {
@@ -325,7 +357,10 @@ export class FunctionalityAgent implements IFunctionalityAgent {
         candidatePassword: string,
         userPassword: string
       ): Promise<boolean> => {
-        return this._scramblerService.comparePassword(candidatePassword, userPassword);
+        return this._scramblerService.comparePassword(
+          candidatePassword,
+          userPassword
+        );
       },
     };
   }
@@ -334,10 +369,9 @@ export class FunctionalityAgent implements IFunctionalityAgent {
     return {
       http: {
         openHttpSession: async <T extends UnknownObject>(
-          userId: string,
           payload: T
         ): Promise<string> => {
-          return this._sessionService.openHttpSession<T>(userId, payload);
+          return this._sessionService.openHttpSession<T>(payload);
         },
         getHttpSessionInfo: async <T extends UnknownObject>(
           userId: string,
@@ -348,7 +382,10 @@ export class FunctionalityAgent implements IFunctionalityAgent {
         getHttpSessionCount: async (userId): Promise<number> => {
           return this._sessionService.getHttpSessionCount(userId);
         },
-        deleteHttpSession: async (userId: string, sessionId: string): Promise<void> => {
+        deleteHttpSession: async (
+          userId: string,
+          sessionId: string
+        ): Promise<void> => {
           return this._sessionService.deleteHttpSession(userId, sessionId);
         },
       },
@@ -366,7 +403,9 @@ export class FunctionalityAgent implements IFunctionalityAgent {
 
   public get exception(): NFunctionalityAgent.Exception {
     return {
-      throwValidation: (errors: NValidatorProvider.ErrorResult[]): IValidatorError => {
+      throwValidation: (
+        errors: NSchemaService.ValidateErrors
+      ): IValidatorError => {
         return container
           .get<IExceptionProvider>(CoreSymbols.ExceptionProvider)
           .throwValidation(errors);
@@ -375,7 +414,8 @@ export class FunctionalityAgent implements IFunctionalityAgent {
         msg: string,
         options?: NExceptionProvider.SchemaExceptionOptions
       ): ISchemaExceptionError => {
-        const trace = options && options.isNotShowTrace ? '' : new Error().stack || '';
+        const trace =
+          options && options.isNotShowTrace ? "" : new Error().stack || "";
 
         return container
           .get<IExceptionProvider>(CoreSymbols.ExceptionProvider)

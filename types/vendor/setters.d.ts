@@ -7,11 +7,15 @@ import {
   UnknownObject,
   Voidable,
 } from "../utility";
-import { NSessionService } from "../services";
+import { NSchemaService, NSessionService } from "../services";
 import { NTypeormProvider } from "../providers";
 import { NDocumentationLoader } from "../loaders";
 import { NAbstractHttpAdapter } from "../adapters";
 import { Typeorm } from "../packages/packages";
+import {
+  ValidateHandlers,
+  ValidatorStructure,
+} from "../services/schema.service";
 
 export type Controller<
   REQ_BODY extends UnknownObject | void = UnknownObject | void,
@@ -36,19 +40,23 @@ export type ControllerStructure<
 > = {
   [key in keyof T]: T[key];
 };
+
+export type HttpController = NAbstractHttpAdapter.Handler<
+  any,
+  StringObject,
+  StringObject,
+  ModeObject,
+  AnyObject,
+  StringObject,
+  AnyObject,
+  AnyObject
+>;
+
 export type RouterStructure<
-  T extends string,
-  C extends Record<string, Controller>
-> = {
-  [key in T]: {
-    [key in HttpMethod]?: {
-      handler: keyof C;
-      isPrivateUser?: boolean;
-      isPrivateOrganization?: boolean;
-      params?: string[];
-    };
-  };
-};
+  T extends string | Record<string, HttpController> =
+    | string
+    | Record<string, HttpController>
+> = NSchemaService.Router<T>;
 
 export type WsListenerStructure<T extends string> = {
   [key in T]: NSessionService.WsListener;
@@ -88,24 +96,22 @@ export type TypeormRepoStructure<
   [K in keyof T]: T[K] extends (data: infer D, ...args: infer A) => infer R
     ? (
         provider: Typeorm.Repository<S>,
-        agents: NAbstractHttpAdapter.Agents["baseAgent"],
+        agents: NAbstractHttpAdapter.Agents,
         data: D
       ) => R
     : T[K];
 };
 
-export type ValidateStructure<T extends any> = T;
-
 export type DomainDocuments = {
   router?: RouterStructure<string>;
-  controller?: ControllerStructure<AnyObject>;
   emitter?: EmitterStructure<string>;
   wsListener?: WsListenerStructure<string>;
-  typeormSchema?: TypeormSchemaStructure<AnyObject, AnyObject>;
-  typeormRepo?: TypeormRepoStructure<Record<string, unknown>>;
+  typeormSchema?: TypeormSchemaStructure<string, AnyObject>;
+  typeormRepo?: TypeormRepoStructure<AnyObject, AnyObject>;
   dictionaries?:
     | DictionaryStructure<string, ExtendedRecordObject>
     | DictionaryStructure<string, ExtendedRecordObject>[];
+  validators?: NSchemaService.ValidatorStructure;
 };
 
 export type EntryPointStructure = {

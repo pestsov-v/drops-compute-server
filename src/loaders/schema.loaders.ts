@@ -18,7 +18,6 @@ import {
   NMongodbProvider,
   NSchemaLoader,
   NTypeormProvider,
-  NValidatorProvider,
   AnyObject,
   ServiceStructure,
   WsListenerStructure,
@@ -26,6 +25,7 @@ import {
   DictionaryStructure,
   ExtendedRecordObject,
   NLocalizationService,
+  NSchemaService,
 } from "@Core/Types";
 import { container } from "../ioc/core.ioc";
 import { CoreSymbols } from "@CoreSymbols";
@@ -58,9 +58,6 @@ export class SchemaLoader implements ISchemaLoader {
         if (documents.router) {
           this._setRoute(name, documents.router);
         }
-        if (documents.controller) {
-          this._setController(name, documents.controller);
-        }
         if (documents.dictionaries) {
           this._setDictionaries(name, documents.dictionaries);
         }
@@ -79,6 +76,10 @@ export class SchemaLoader implements ISchemaLoader {
             documents.typeormSchema.model,
             documents.typeormRepo
           );
+        }
+
+        if (documents.validators) {
+          this._setValidator(name, documents.validators);
         }
 
         this._applyDomainToService(service.service, domain.domain);
@@ -148,19 +149,6 @@ export class SchemaLoader implements ISchemaLoader {
     }
 
     sStorage.set(domain, dStorage);
-  }
-
-  private _setController(domain: string, structure: ControllerStructure): void {
-    const storage = this._domains.get(domain);
-    if (!storage) {
-      this._setDomain(domain);
-      this._setController(domain, structure);
-      return;
-    }
-
-    for (const controller in structure) {
-      storage.controllers.set(controller, structure[controller]);
-    }
   }
 
   private _setEmitter(domain: string, emitter: EmitterStructure<string>): void {
@@ -234,16 +222,43 @@ export class SchemaLoader implements ISchemaLoader {
 
   private _setValidator(
     domain: string,
-    validator: NSchemaLoader.Validator
+    structure: NSchemaService.ValidatorStructure
   ): void {
     const storage = this._domains.get(domain);
     if (!storage) {
       this._setDomain(domain);
-      this._setValidator(domain, validator);
+      this._setValidator(domain, structure);
       return;
     }
 
-    storage.validators.set(validator.name, validator.handler);
+    for (const handler in structure) {
+      const validator = structure[handler];
+      if (validator.in) {
+        const name = handler + "{{" + "in" + "}}";
+        if (storage.validators.has(name)) {
+          throw new Error(
+            `Validator handler "${handler}" for input params has been exists in domain "${domain}".`
+          );
+        }
+        storage.validators.set(name, {
+          scope: "in",
+          handler: validator.in,
+        });
+      }
+
+      if (validator.out) {
+        const name = handler + "{{" + "out" + "}}";
+        if (storage.validators.has(name)) {
+          throw new Error(
+            `Validator handler "${handler}" for output params has been exists in domain "${domain}".`
+          );
+        }
+        storage.validators.set(name, {
+          scope: "out",
+          handler: validator.out,
+        });
+      }
+    }
   }
 
   private _setMongoRepository<
@@ -263,19 +278,13 @@ export class SchemaLoader implements ISchemaLoader {
       return;
     }
     if (!storage.mongoRepoHandlers) {
-      storage.mongoRepoHandlers = new Map<
-        string,
-        NAbstractHttpAdapter.Handler
-      >();
+      storage.mongoRepoHandlers = new Map<string, any>();
     }
 
     storage.mongoRepoHandlers.set(details.name, details.handler);
   }
 
-  private _setRoute(
-    domain: string,
-    structure: RouterStructure<string, AnyObject>
-  ): void {
+  private _setRoute(domain: string, structure: RouterStructure): void {
     const storage = this._domains.get(domain);
     if (!storage) {
       this._setDomain(domain);
@@ -289,19 +298,21 @@ export class SchemaLoader implements ISchemaLoader {
         const description = routes[method as HttpMethod];
         if (description) {
           const name = str + "{{" + method.toUpperCase() + "}}";
-          const route = storage.routes.get(name);
+
+          const route = storage.routes.has(name);
           if (route) {
-            throw new Error("`Route ${name} already exists");
-          } else {
-            storage.routes.set(name, {
-              path: str,
-              method: method as HttpMethod,
-              handler: description.handler,
-              isPrivateUser: description.isPrivateUser,
-              isPrivateOrganization: description.isPrivateOrganization,
-              params: description.params,
-            });
+            throw new Error(
+              `Route "${str}" with http method "${method}" has been exists in domain "${domain}"`
+            );
           }
+
+          storage.routes.set(name, {
+            path: str,
+            method: method as HttpMethod,
+            handler: description.handler,
+            scope: description.scope,
+            params: description.params,
+          });
         }
       }
     }
@@ -369,10 +380,9 @@ export class SchemaLoader implements ISchemaLoader {
   private _setDomain(domain: string): void {
     this._domains.set(domain, {
       routes: new Map<string, NSchemaLoader.Route>(),
-      controllers: new Map<string, NAbstractHttpAdapter.Handler>(),
       helpers: new Map<string, AnyFunction>(),
       mongoRepoHandlers: new Map<string, AnyFunction>(),
-      validators: new Map<string, NValidatorProvider.ValidateHandler>(),
+      validators: new Map<string, NSchemaLoader.Validator>(),
       typeormRepoHandlers: new Map<string, AnyFunction>(),
       dictionaries: new Map<string, NLocalizationService.Dictionary>(),
       emitter: new Map<string, NSchemaLoader.Emitter>(),

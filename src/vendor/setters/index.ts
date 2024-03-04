@@ -5,18 +5,17 @@ import {
   RouterStructure,
   ExtendedRecordObject,
   DomainDocuments,
-  ControllerStructure,
   AnyObject,
   TypeormRepoStructure,
   TypeormSchemaStructure,
   NTypeormProvider,
-  ValidateStructure,
   NDocumentationLoader,
-  IDocumentationLoader,
   ServiceDocStructure,
   DomainDocStructure,
   VoidableStrOrArrStr,
   EntryPointStructure,
+  NSchemaService,
+  HttpController,
 } from "@Core/Types";
 
 export const setService = (
@@ -53,27 +52,23 @@ export const setEmitter = <T extends string>(
   return structure;
 };
 
-export const setRouter = <T extends string, C extends AnyObject>(
-  structure: RouterStructure<T, C>
-): RouterStructure<T, C> => {
+export const setRouter = <T extends string | Record<string, HttpController>>(
+  structure: RouterStructure<T>
+): RouterStructure<T> => {
   return structure;
 };
 
-export const setValidator = <T extends Record<string, any>>(
-  structure: ValidateStructure<T>
-): ValidateStructure<T> => {
+export const setValidator = <
+  T extends string | Record<string, NSchemaService.ValidateObject>
+>(
+  structure: NSchemaService.ValidatorStructure<T>
+): NSchemaService.ValidatorStructure<T> => {
   return structure;
 };
 
 export const setWsListener = <T extends string>(
   structure: WsListenerStructure<T>
 ): WsListenerStructure<T> => {
-  return structure;
-};
-
-export const setController = <T extends AnyObject>(
-  structure: ControllerStructure<T>
-): ControllerStructure<T> => {
   return structure;
 };
 

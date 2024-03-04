@@ -1,14 +1,19 @@
-import { ControllerHandler, TypeormRepoHandlers, ValidateHandler, yup } from '@Core/Types';
+import {
+  ControllerHandler,
+  TypeormRepoHandlers,
+  ValidateHandler,
+  yup,
+} from "@Core/Types";
 
 export namespace NTest {
-  export type Paths = 'v1/test';
+  export type Paths = "v1/tes2t";
 
   export type Entity = {
     firstName?: string;
     lastName: string;
   };
   export type Controller = {
-    sendTest: ControllerHandler<Entity>;
+    create: ControllerHandler<Entity>;
   };
 
   export type Validator = {

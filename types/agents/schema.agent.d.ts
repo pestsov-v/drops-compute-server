@@ -1,12 +1,18 @@
 import { FnObject, KeyStringLiteralBuilder, UnknownObject } from "../utility";
+import { NSchemaLoader } from "../loaders";
 
 export interface ISchemaAgent {
   getAnotherMongoRepository<D extends string, T extends FnObject = FnObject>(
     domain: D
   ): T;
   getMongoRepository<T extends FnObject = FnObject>(): T;
-  getValidator<T extends UnknownObject>(): T;
-  getAnotherValidator<D extends string, T>(domain: D): T;
+  getValidator<T extends UnknownObject>(
+    scope: NSchemaLoader.ValidateParamScope
+  ): T;
+  getAnotherValidator<D extends string, T>(
+    domain: D,
+    scope: NSchemaLoader.ValidateParamScope
+  ): T;
   getTypeormRepository<T extends FnObject = FnObject>(): T;
   getAnotherTypeormRepository<D extends string, T extends FnObject = FnObject>(
     domain: D

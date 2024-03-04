@@ -1,10 +1,10 @@
-import { Ws } from '../packages/packages';
-import { Nullable, UnknownObject } from '../utility';
-import { IAbstractService  } from './abstract.service';
-import {IBaseOperationAgent, IIntegrationAgent} from '../agents'
+import { Ws } from "../packages/packages";
+import { Nullable, UnknownObject } from "../utility";
+import { IAbstractService } from "./abstract.service";
+import { IBaseOperationAgent, IIntegrationAgent } from "../agents";
 
 export interface ISessionService extends IAbstractService {
-  openHttpSession<T extends UnknownObject>(userId: string, payload: T): Promise<string>;
+  openHttpSession<T extends UnknownObject>(payload: T): Promise<string>;
   getHttpSessionInfo<T extends UnknownObject>(
     userId: string,
     sessionId: string
@@ -12,7 +12,10 @@ export interface ISessionService extends IAbstractService {
   getHttpSessionCount(userId: string): Promise<number>;
   deleteHttpSession(userId: string, sessionId: string): Promise<void>;
 
-  setWsConnection(ws: Ws.WebSocket, connection: NSessionService.ConnectionDetails): void;
+  setWsConnection(
+    ws: Ws.WebSocket,
+    connection: NSessionService.ConnectionDetails
+  ): void;
   sendSessionToSession(
     event: string,
     payload: NSessionService.SessionToSessionPayload
@@ -21,19 +24,19 @@ export interface ISessionService extends IAbstractService {
 
 export namespace NSessionService {
   export type ServerEvent =
-    | 'server:handshake'
-    | 'server:handshake:error'
-    | 'server:authenticate'
-    | 'server:authenticate:error'
-    | 'server:session:to:session'
-    | 'server:broadcast:to:service';
+    | "handshake"
+    | "handshake.error"
+    | "authenticate"
+    | "authenticate.error"
+    | "session:to:session"
+    | "broadcast:to:service";
 
   export const enum ClientEvent {
-    HANDSHAKE = 'client:handshake',
-    UPLOAD_PAGE = 'client:upload:page',
-    AUTHENTICATE = 'client:authenticate',
-    SESSION_TO_SESSION = 'client:session:to:session',
-    BROADCAST_TO_SERVICE = 'client:broadcast:to:service',
+    HANDSHAKE = "handshake",
+    UPLOAD_PAGE = "upload:page",
+    AUTHENTICATE = "authenticate",
+    SESSION_TO_SESSION = "session:to:session",
+    BROADCAST_TO_SERVICE = "broadcast:to:service",
   }
 
   export type ConnectionId = {
@@ -52,7 +55,7 @@ export namespace NSessionService {
 
   export type ServerHandshakePayload = {
     serverTag: string;
-    service: string;
+    services: string[];
     connectionId: string;
   };
 
@@ -67,13 +70,13 @@ export namespace NSessionService {
     accessToken: string;
   };
 
-  export type ClientSessionToSessionPayload<T extends UnknownObject = UnknownObject> = {
+  export type ClientSessionToSessionPayload<
+    T extends UnknownObject = UnknownObject
+  > = {
     event: string;
     token: string;
-    corePayload: {
-      userId: string;
-    };
-    schemaPayload: T;
+    userId: string;
+    payload: T;
   };
 
   export type ReSendPayload = {
@@ -85,7 +88,10 @@ export namespace NSessionService {
   export type Listener = {
     isPrivateUser: boolean;
     isPrivateOrganization: boolean;
-    listener: (agent: Agents, context: Context) => Promise<void | ReSendPayload>;
+    listener: (
+      agent: Agents,
+      context: Context
+    ) => Promise<void | ReSendPayload>;
   };
 
   export type Agents = {
@@ -99,27 +105,35 @@ export namespace NSessionService {
     [key in E]: Listener;
   };
 
-  export type EventPayload<E extends ClientEvent = ClientEvent> = E extends ClientEvent.HANDSHAKE
-    ? ClientHandshakePayload
-    : E extends ClientEvent.AUTHENTICATE
-    ? ClientAuthenticatePayload
-    : E extends ClientEvent.UPLOAD_PAGE
-    ? string
-    : E extends ClientEvent.SESSION_TO_SESSION
-    ? ClientSessionToSessionPayload
-    : E extends ClientEvent.BROADCAST_TO_SERVICE
-    ? string
-    : never;
+  export type EventPayload<E extends ClientEvent = ClientEvent> =
+    E extends ClientEvent.HANDSHAKE
+      ? ClientHandshakePayload
+      : E extends ClientEvent.AUTHENTICATE
+      ? ClientAuthenticatePayload
+      : E extends ClientEvent.UPLOAD_PAGE
+      ? string
+      : E extends ClientEvent.SESSION_TO_SESSION
+      ? ClientSessionToSessionPayload
+      : E extends ClientEvent.BROADCAST_TO_SERVICE
+      ? string
+      : never;
 
-  export type EventRoutine<E extends ClientEvent = ClientEvent> = EventHandler<EventPayload<E>>;
+  export type EventRoutine<E extends ClientEvent = ClientEvent> = EventHandler<
+    EventPayload<E>
+  >;
 
   export type EventRoutines<K extends ClientEvent = ClientEvent> = {
     [key in K]: EventRoutine<key>;
   };
 
-  export type ClientData<E extends ClientEvent = ClientEvent> = {
-    event: string;
-    payload: CE;
+  export type ClientData<
+    P,
+    H extends Record<string, string> = Record<string, string>,
+    E extends ClientEvent = ClientEvent
+  > = {
+    event: E;
+    payload: P;
+    headers?: H;
   };
 
   export type Config = {
@@ -151,7 +165,8 @@ export namespace NSessionService {
   export interface AnonymousConnection extends BaseConnection {
     auth: false;
   }
-  export interface AuthConnection<T extends UnknownObject = UnknownObject> extends BaseConnection {
+  export interface AuthConnection<T extends UnknownObject = UnknownObject>
+    extends BaseConnection {
     auth: true;
     userId: string;
     sessionId: string;

@@ -7,7 +7,7 @@ export * from "./common";
 
 import { container } from "./ioc/core.ioc";
 import { CoreSymbols } from "@CoreSymbols";
-import { IInitiator, ISchemaService, ServiceStructure } from "@Core/Types";
+import { IInitiator, ServiceStructure } from "@Core/Types";
 
 const setServices = (services: ServiceStructure[]): void => {
   SCHEMA_SERVICES.push(...services);

@@ -2,12 +2,11 @@ import { Packages } from "@Packages";
 const { injectable, inject } = Packages.inversify;
 
 import { CoreSymbols } from "@CoreSymbols";
-import { container } from "../ioc/core.ioc";
 import { AbstractService } from "./abstract.service";
+import { SCHEMA_SERVICES } from "@common";
 
 import {
   IDiscoveryService,
-  IDocumentationLoader,
   ILoggerService,
   IMongodbConnector,
   ISchemaLoader,
@@ -20,7 +19,6 @@ import {
   NSpecificationLoader,
   ServiceStructure,
 } from "@Core/Types";
-import { SCHEMA_SERVICES } from "@common";
 
 @injectable()
 export class SchemaService extends AbstractService implements ISchemaService {

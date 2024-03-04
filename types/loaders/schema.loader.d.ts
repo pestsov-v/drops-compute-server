@@ -13,7 +13,8 @@ import {
   TypeormRepoStructure,
 } from "../vendor";
 import { Typeorm } from "../packages/packages";
-import { NLocalizationService } from "../services";
+import { NLocalizationService, NSchemaService } from "../services";
+import { HandlerAlias } from "../adapters/abstract.framework-adapter";
 
 export interface ISchemaLoader {
   readonly services: NSchemaLoader.Services;
@@ -25,12 +26,11 @@ export interface ISchemaLoader {
 }
 
 export namespace NSchemaLoader {
-  export type Route<T extends string = string> = {
+  export type Route = {
     path: string;
     method: HttpMethod;
-    handler: T;
-    isPrivateUser?: boolean;
-    isPrivateOrganization?: boolean;
+    handler: NAbstractHttpAdapter.HandlerAlias;
+    scope: NSchemaService.AuthScope;
     params?: string[];
   };
 
@@ -42,9 +42,10 @@ export namespace NSchemaLoader {
     isPrivateOrganization?: boolean;
   };
 
-  export type Validator<T = AnyObject> = {
-    name: handler;
-    handler: NValidatorProvider.ValidateHandler<T>;
+  export type ValidateParamScope = "in" | "out";
+  export type Validator = {
+    scope: ValidateParamScope;
+    handler: NSchemaService.ValidateHandler;
   };
 
   export type MongoRepoHandler<
@@ -67,7 +68,6 @@ export namespace NSchemaLoader {
 
   export type DomainStorage = {
     routes: Map<string, NSchemaLoader.Route>;
-    controllers: Map<string, NAbstractHttpAdapter.Handler>;
     helpers: Map<string, HelperHandler>;
     mongoModel?: string;
     mongoSchema?: NMongodbProvider.SchemaFn<unknown>;
@@ -75,7 +75,7 @@ export namespace NSchemaLoader {
     typeormModel?: string;
     typeormSchema?: NTypeormProvider.SchemaFn<unknown>;
     typeormRepoHandlers: Map<string, AnyFunction>;
-    validators: Map<string, NValidatorProvider.ValidateHandler>;
+    validators: Map<string, NSchemaLoader.Validator>;
     dictionaries: Map<string, NLocalizationService.Dictionary>;
     emitter: Map<string, NSchemaLoader.Emitter>;
     wsListeners: Map<string, AnyFunction>;

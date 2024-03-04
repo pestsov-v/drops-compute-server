@@ -23,10 +23,12 @@ import bcrypt from "bcrypt";
 import nodemailer from "nodemailer";
 import ws from "ws";
 import querystring from "querystring";
+import joi from "joi";
+
 // @ts-ignore
 import openapiValidator from "openapi-schema-validator";
 
-export { querystring };
+export { querystring, joi };
 
 export {
   AbstractDiscoveryService,

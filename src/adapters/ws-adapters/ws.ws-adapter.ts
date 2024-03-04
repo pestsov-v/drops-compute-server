@@ -80,26 +80,30 @@ export class WsWsAdapter
     try {
       this._instance = new ws.WebSocketServer({ server });
 
-      this._instance.on(
-        "connection",
-        (ws: Ws.WebSocket, request: Http.IncomingMessage) => {
-          this._sessionService.setWsConnection(ws, {
-            userAgent: request.headers["user-agent"],
-            acceptLanguage: request.headers["accept-language"],
-            websocketKey: request.headers["sec-websocket-key"],
-            ip: request.socket.remoteAddress,
-          });
-        }
-      );
+      const instance = this._instance;
+      const service = this._sessionService;
 
-      this._loggerService.system(
-        `Websocket server listening on ${protocol}://${host}:${port}`,
-        {
-          scope: "Core",
-          namespace: this._ADAPTER_NAME,
-          tag: "Connection",
-        }
-      );
+      instance.on("connection", function (ws, request) {
+        const internalWs = ws as Ws.WebSocket;
+
+        service.setWsConnection(internalWs, {
+          userAgent: request.headers["user-agent"],
+          acceptLanguage: request.headers["accept-language"],
+          websocketKey: request.headers["sec-websocket-key"],
+          ip: request.socket.remoteAddress ?? "",
+        });
+      });
+
+      server.listen(port, () => {
+        this._loggerService.system(
+          `Websocket server listening on ${protocol}://${host}:${port}`,
+          {
+            scope: "Core",
+            namespace: this._ADAPTER_NAME,
+            tag: "Connection",
+          }
+        );
+      });
     } catch (e) {
       throw e;
     }

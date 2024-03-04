@@ -4,7 +4,7 @@ import {
   IIntegrationAgent,
   ISchemaAgent,
 } from "../agents";
-import { NContextService, NScramblerService } from "../services";
+import { NContextService, NSchemaService } from "../services";
 
 import { Express, Fastify } from "../packages/packages";
 import {
@@ -17,7 +17,6 @@ import {
 } from "../";
 import { NSchemaLoader } from "../loaders";
 import { Helpers } from "../providers/schema.provider";
-import { ResponseFormat } from "../../src/.test_schema/domains/test.controller";
 
 export interface IAbstractFrameworkAdapter {
   start(schema: NSchemaLoader.Services): Promise<void>;
@@ -25,6 +24,7 @@ export interface IAbstractFrameworkAdapter {
 }
 
 export namespace NAbstractHttpAdapter {
+  import AuthScope = NSchemaService.AuthScope;
   export type FrameworkKind = "express" | "fastify";
   export type Config = {
     serverTag: string;
@@ -75,26 +75,40 @@ export namespace NAbstractHttpAdapter {
     ? Fastify.Instance
     : never;
 
-  export interface BaseSessionInfo {
-    auth: boolean;
+  export interface PrivateUserEnv<U = any> {
+    user: U;
   }
 
-  export interface NonAuthSessionInfo extends BaseSessionInfo {
-    auth: false;
+  export interface PrivateOrgEnv<U = any, O = any> {
+    user: U;
+    organization: O;
   }
 
-  export interface AuthSessionInfo<T> extends BaseSessionInfo {
-    auth: true;
-    info: T & NScramblerService.SessionIdentifiers;
-  }
+  export type SessionEnvs<
+    U = any,
+    O = any,
+    A extends AuthScope = AuthScope
+  > = A extends "public:route"
+    ? void
+    : A extends "private:user"
+    ? PrivateUserEnv<U>
+    : A extends "private:organization"
+    ? PrivateOrgEnv<U, O>
+    : never;
 
-  export type SessionInfo<T = void> = AuthSessionInfo<T> | NonAuthSessionInfo;
-
-  export type Context<T> = {
-    storage: storage;
-    packages: Packages;
-    sessionInfo: SessionInfo<T>;
-  };
+  export type Context<
+    SESSION_INFO = any,
+    ORG_INFO = any,
+    AUTH_SCOPE extends NSchemaService.AuthScope = NSchemaService.AuthScope
+  > = {
+    store: storage["store"];
+  } & (AUTH_SCOPE extends "public:route"
+    ? {}
+    : AUTH_SCOPE extends "private:user"
+    ? PrivateUserEnv<SESSION_INFO>
+    : AUTH_SCOPE extends "private:organization"
+    ? PrivateOrgEnv<SESSION_INFO, ORG_INFO>
+    : never);
 
   export type SchemaRequest<
     BODY = UnknownObject,
@@ -160,19 +174,32 @@ export namespace NAbstractHttpAdapter {
     : never;
 
   export type Handler<
-    REQ_BODY extends UnknownObject | void = UnknownObject | void,
-    REQ_PARAMS extends Voidable<StringObject> = Voidable<StringObject> | void,
-    REQ_HEADERS extends Voidable<StringObject> = Voidable<StringObject> | void,
-    REQ_QUERIES extends Voidable<ModeObject> = Voidable<ModeObject> | void,
-    RES_BODY extends Voidable<AnyObject> = Voidable<AnyObject> | void,
-    RES_HEADERS extends Voidable<StringObject> = Voidable<StringObject> | void,
-    SESSION_INFO extends AnyObject | void = AnyObject | void,
-    T extends ResponseFormat = ResponseFormat
+    REQ_BODY = any,
+    REQ_PARAMS extends Record<string, string> | void,
+    REQ_HEADERS extends StringObject | void,
+    REQ_QUERIES extends ModeObject | void,
+    RES_BODY extends AnyObject | void,
+    RES_HEADERS extends StringObject | void,
+    SESSION_INFO extends AnyObject | void,
+    ORG_SESSION_INFO extends AnyObject | void,
+    AUTH_SCOPE extends NSchemaService.AuthScope,
+    RES_FORMAT extends ResponseFormat = ResponseFormat
   > = (
     request: SchemaRequest<REQ_BODY, REQ_PARAMS, REQ_HEADERS, REQ_QUERIES>,
     agents: Agents,
-    context: Context<SESSION_INFO>
-  ) => Promise<Voidable<SchemaResponse<RES_BODY, RES_HEADERS, T>>>;
+    context: Context<SESSION_INFO, ORG_SESSION_INFO, AUTH_SCOPE>
+  ) => Promise<Voidable<SchemaResponse<RES_BODY, RES_HEADERS, RES_FORMAT>>>;
+
+  export type HandlerAlias = Handler<
+    any,
+    StringObject,
+    StringObject,
+    ModeObject,
+    AnyObject,
+    StringObject,
+    AnyObject,
+    AnyObject
+  >;
 
   export type FailSchemaParameter = "service" | "domain" | "action";
 

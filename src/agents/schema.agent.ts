@@ -9,12 +9,11 @@ import {
   ISchemaAgent,
   ISchemaProvider,
   KeyStringLiteralBuilder,
+  NSchemaLoader,
 } from "@Core/Types";
 
 @injectable()
 export class SchemaAgent implements ISchemaAgent {
-  constructor() {}
-
   public getAnotherMongoRepository<T extends FnObject = FnObject>(
     name: string
   ): T {
@@ -29,16 +28,21 @@ export class SchemaAgent implements ISchemaAgent {
       .getMongoRepository<T>();
   }
 
-  public getAnotherValidator<T>(name: string): T {
+  public getAnotherValidator<T>(
+    name: string,
+    scope: NSchemaLoader.ValidateParamScope
+  ): T {
     return container
       .get<ISchemaProvider>(CoreSymbols.SchemaProvider)
-      .getAnotherValidator<T>(name);
+      .getAnotherValidator<T>(name, scope);
   }
 
-  public getValidator<T extends UnknownObject>(): T {
+  public getValidator<T extends UnknownObject>(
+    scope: NSchemaLoader.ValidateParamScope
+  ): T {
     return container
       .get<ISchemaProvider>(CoreSymbols.SchemaProvider)
-      .getValidator<T>();
+      .getValidator<T>(scope);
   }
 
   public getAnotherTypeormRepository<T extends FnObject = FnObject>(

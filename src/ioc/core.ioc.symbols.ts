@@ -24,7 +24,6 @@ export const CoreSymbols = {
   SchemaProvider: Symbol("SchemaProvider"),
   MongodbProvider: Symbol("MongodbProvider"),
   TypeormProvider: Symbol("TypeormProvider"),
-  ValidatorProvider: Symbol("ValidatorProvider"),
   ExceptionProvider: Symbol("ExceptionProvider"),
   RedisProvider: Symbol("RedisProvider"),
 
@@ -50,6 +49,5 @@ export const CoreSymbols = {
   FrameworkFactory: Symbol("FrameworkFactory"),
 
   // Base operations
-  ValidatorBaseOperation: Symbol("ValidatorBaseOperation"),
   SpecificationBaseOperation: Symbol("SpecificationBaseOperation"),
 } as const;

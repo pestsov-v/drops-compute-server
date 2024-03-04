@@ -1,18 +1,25 @@
-import { Packages } from '@Packages';
+import { Packages, joi } from "@Packages";
 
 const { injectable, inject } = Packages.inversify;
-import { CoreSymbols } from '@CoreSymbols';
-import { container } from '../ioc/core.ioc';
+import { CoreSymbols } from "@CoreSymbols";
+import { container } from "../ioc/core.ioc";
 
 import {
-  AnyFunction, FnObject, UnknownObject,
+  AnyFunction,
+  FnObject,
+  UnknownObject,
   IContextService,
   IFunctionalityAgent,
   ISchemaProvider,
   ITypeormProvider,
   NLocalizationService,
-} from '@Core/Types';
-import { Guards } from '@Guards';
+  NAbstractHttpAdapter,
+  ISchemaAgent,
+  IBaseOperationAgent,
+  IIntegrationAgent,
+  NSchemaLoader,
+} from "@Core/Types";
+import { Guards } from "@Guards";
 
 @injectable()
 export class SchemaProvider implements ISchemaProvider {
@@ -26,16 +33,16 @@ export class SchemaProvider implements ISchemaProvider {
 
     const service = store.schema.get(store.service);
     if (!service) {
-      throw new Error('Service not found');
+      throw new Error("Service not found");
     }
     const domain = service.get(name);
     if (!domain) {
-      throw new Error('Domain not found');
+      throw new Error("Domain not found");
     }
 
     const mongoRepository = domain.mongoRepoHandlers;
     if (!mongoRepository) {
-      throw new Error('Mongo repository not found');
+      throw new Error("Mongo repository not found");
     }
 
     class Repository<T> {
@@ -70,27 +77,30 @@ export class SchemaProvider implements ISchemaProvider {
     return this.getAnotherMongoRepository<T>(this._contextService.store.domain);
   }
 
-  public getAnotherValidator<T>(name: string): T {
+  public getAnotherValidator<T>(
+    name: string,
+    scope: NSchemaLoader.ValidateParamScope
+  ): T {
     const store = this._contextService.store;
 
     const service = store.schema.get(store.service);
     if (!service) {
-      throw new Error('Service not found');
+      throw new Error("Service not found");
     }
     const domain = service.get(name);
     if (!domain) {
-      throw new Error('Domain not found');
+      throw new Error("Domain not found");
     }
 
     const validators = domain.validators;
     if (!validators) {
-      throw new Error('Validator not found');
+      throw new Error("Validator not found");
     }
 
-    class Validator<T> {
-      private readonly _handlers: Map<string, AnyFunction>;
+    class Validator {
+      private readonly _handlers: Map<string, NSchemaLoader.Validator>;
 
-      constructor(handlers: Map<string, AnyFunction>) {
+      constructor(handlers: Map<string, NSchemaLoader.Validator>) {
         this._handlers = handlers;
 
         for (const [name] of this._handlers) {
@@ -105,19 +115,38 @@ export class SchemaProvider implements ISchemaProvider {
       private _runMethod(method: string, ...args: any[]): any {
         const handler = this._handlers.get(method);
         if (handler) {
-          const validator = container.get<IFunctionalityAgent>(
-            CoreSymbols.FunctionalityAgent
-          ).validator;
-          return handler(validator, ...args);
+          switch (scope) {
+            case "in":
+              if (handler.scope === "in") {
+                return handler.handler(joi, args);
+              } else {
+                throw new Error(
+                  `Validator handler "${handler}" for input params not found in domain "${domain}".`
+                );
+              }
+            case "out":
+              if (handler.scope === "out") {
+                return handler.handler(joi, args);
+              } else {
+                throw new Error(
+                  `Validator handler "${handler}" for output params not found in domain "${domain}".`
+                );
+              }
+          }
         }
       }
     }
 
-    return new Validator<T>(validators) as T;
+    return new Validator(validators) as T;
   }
 
-  public getValidator<T extends UnknownObject>(): T {
-    return this.getAnotherValidator<T>(this._contextService.store.domain);
+  public getValidator<T extends UnknownObject>(
+    scope: NSchemaLoader.ValidateParamScope
+  ): T {
+    return this.getAnotherValidator<T>(
+      this._contextService.store.domain,
+      scope
+    );
   }
 
   public getAnotherTypeormRepository<T>(name: string): T {
@@ -125,16 +154,16 @@ export class SchemaProvider implements ISchemaProvider {
 
     const service = store.schema.get(store.service);
     if (!service) {
-      throw new Error('Service not found');
+      throw new Error("Service not found");
     }
     const domain = service.get(name);
     if (!domain) {
-      throw new Error('Domain not found');
+      throw new Error("Domain not found");
     }
 
     const handlers = domain.typeormRepoHandlers;
     if (!handlers) {
-      throw new Error('Typeorm repository handlers not found');
+      throw new Error("Typeorm repository handlers not found");
     }
 
     class Repository<T> {
@@ -155,10 +184,23 @@ export class SchemaProvider implements ISchemaProvider {
       private _runMethod(method: string, ...args: any[]): any {
         const handler = this._handlers.get(method);
         if (handler && domain && domain.typeormModel) {
+          const agents: NAbstractHttpAdapter.Agents = {
+            functionalityAgent: container.get<IFunctionalityAgent>(
+              CoreSymbols.FunctionalityAgent
+            ),
+            schemaAgent: container.get<ISchemaAgent>(CoreSymbols.SchemaAgent),
+            baseAgent: container.get<IBaseOperationAgent>(
+              CoreSymbols.BaseOperationAgent
+            ),
+            integrationAgent: container.get<IIntegrationAgent>(
+              CoreSymbols.IntegrationAgent
+            ),
+          };
+
           const validator = container
             .get<ITypeormProvider>(CoreSymbols.TypeormProvider)
             .getRepository(domain.typeormModel);
-          return handler(validator, ...args);
+          return handler(validator, agents, ...args);
         }
       }
     }
@@ -167,7 +209,9 @@ export class SchemaProvider implements ISchemaProvider {
   }
 
   public getTypeormRepository<T>(): T {
-    return this.getAnotherTypeormRepository<T>(this._contextService.store.domain);
+    return this.getAnotherTypeormRepository<T>(
+      this._contextService.store.domain
+    );
   }
 
   public getAnotherResource(
@@ -199,7 +243,7 @@ export class SchemaProvider implements ISchemaProvider {
       dictionary = dictionaries.get(store.language);
     }
 
-    const resources = resource.split(':');
+    const resources = resource.split(":");
     let record: NLocalizationService.DictionaryRecord = dictionary;
 
     if (resources.length > 1) {
@@ -207,9 +251,9 @@ export class SchemaProvider implements ISchemaProvider {
         if (!Guards.isString(record)) {
           record = record[key];
 
-          if (typeof record === 'undefined') {
+          if (typeof record === "undefined") {
             // TODO: implement localization error
-            throw new Error('Resource not found');
+            throw new Error("Resource not found");
           }
         } else {
           return record;
@@ -217,7 +261,10 @@ export class SchemaProvider implements ISchemaProvider {
       }
       if (substitutions) {
         for (const substitution in substitutions) {
-          record = record.replace('{{' + substitution + '}}', substitutions[substitution]);
+          record = record.replace(
+            "{{" + substitution + "}}",
+            substitutions[substitution]
+          );
         }
       }
     } else {
@@ -234,6 +281,11 @@ export class SchemaProvider implements ISchemaProvider {
   ): string {
     const store = this._contextService.store;
 
-    return this.getAnotherResource(store.domain, resource, substitutions, language);
+    return this.getAnotherResource(
+      store.domain,
+      resource,
+      substitutions,
+      language
+    );
   }
 }

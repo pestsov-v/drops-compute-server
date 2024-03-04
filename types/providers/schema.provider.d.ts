@@ -4,8 +4,13 @@ import { FnObject, UnknownObject } from "../utility";
 export interface ISchemaProvider {
   getMongoRepository<T extends FnObject = FnObject>(): T;
   getAnotherMongoRepository<T extends FnObject = FnObject>(name: string): T;
-  getValidator<T extends UnknownObject>(): T;
-  getAnotherValidator<T>(name: string): T;
+  getValidator<T extends UnknownObject>(
+    scope: NSchemaLoader.ValidateParamScope
+  ): T;
+  getAnotherValidator<T>(
+    name: string,
+    scope: NSchemaLoader.ValidateParamScope
+  ): T;
   getTypeormRepository<T>(): T;
   getAnotherTypeormRepository<T>(name: string): T;
   getResource(

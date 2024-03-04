@@ -1,11 +1,11 @@
-import { Packages } from '@Packages';
+import { Packages } from "@Packages";
 const { injectable, inject } = Packages.inversify;
 const { jwt } = Packages.jwt;
 const { bcrypt } = Packages.bcrypt;
 const { crypto } = Packages.crypto;
 const { v4 } = Packages.uuid;
-import { CoreSymbols } from '@CoreSymbols';
-import { AbstractService } from './abstract.service';
+import { CoreSymbols } from "@CoreSymbols";
+import { AbstractService } from "./abstract.service";
 
 import {
   UnknownObject,
@@ -14,10 +14,13 @@ import {
   ILoggerService,
   IScramblerService,
   NScramblerService,
-} from '@Core/Types';
+} from "@Core/Types";
 
 @injectable()
-export class ScramblerService extends AbstractService implements IScramblerService {
+export class ScramblerService
+  extends AbstractService
+  implements IScramblerService
+{
   protected readonly _SERVICE_NAME = ScramblerService.name;
   protected _config: NScramblerService.Config | undefined;
 
@@ -32,15 +35,30 @@ export class ScramblerService extends AbstractService implements IScramblerServi
 
   private _setConfig() {
     this._config = {
-      enable: this._discoveryService.getBoolean('services.scrambler.enable', false),
-      salt: this._discoveryService.getNumber('services.scrambler.salt', 5),
-      secret: this._discoveryService.getString('services.scrambler.secret', ''),
-      randomBytes: this._discoveryService.getNumber('services.scrambler.randomBytes', 10),
-      accessExpiredAt: this._discoveryService.getNumber('services.scrambler.accessExpiredAt', 10),
-      refreshExpiredAt: this._discoveryService.getNumber('services.scrambler.refreshExpiredAt', 30),
+      enable: this._discoveryService.getBoolean(
+        "services.scrambler.enable",
+        false
+      ),
+      salt: this._discoveryService.getNumber("services.scrambler.salt", 5),
+      secret: this._discoveryService.getString(
+        "services.scrambler.secret",
+        "default"
+      ),
+      randomBytes: this._discoveryService.getNumber(
+        "services.scrambler.randomBytes",
+        10
+      ),
+      accessExpiredAt: this._discoveryService.getNumber(
+        "services.scrambler.accessExpiredAt",
+        10
+      ),
+      refreshExpiredAt: this._discoveryService.getNumber(
+        "services.scrambler.refreshExpiredAt",
+        30
+      ),
       defaultAlgorithm: this._discoveryService.getString(
-        'services.scrambler.defaultAlgorithm',
-        'MD5'
+        "services.scrambler.defaultAlgorithm",
+        "MD5"
       ),
     };
   }
@@ -51,8 +69,8 @@ export class ScramblerService extends AbstractService implements IScramblerServi
 
     if (!this._config.enable) {
       this._loggerService.warn(`Service ${this._SERVICE_NAME} is disabled.`, {
-        tag: 'Connection',
-        scope: 'Core',
+        tag: "Connection",
+        scope: "Core",
         namespace: this._SERVICE_NAME,
       });
       return false;
@@ -101,14 +119,22 @@ export class ScramblerService extends AbstractService implements IScramblerServi
     }
   }
 
-  private _generateToken<T = UnknownObject>(payload: T, expiresIn: number, alg?: Jwt.Algorithm) {
+  private _generateToken<T = UnknownObject>(
+    payload: T,
+    expiresIn: number,
+    alg?: Jwt.Algorithm
+  ) {
     if (!this._config) throw this._throwConfigError();
-    const algorithm = alg ?? 'HS256';
+    const algorithm = alg ?? "HS256";
 
     const jwtId = v4();
     try {
       return {
-        jwt: jwt.sign({ payload }, this._config.secret, { expiresIn, algorithm, jwtid: jwtId }),
+        jwt: jwt.sign({ payload }, this._config.secret, {
+          expiresIn,
+          algorithm,
+          jwtid: jwtId,
+        }),
         jwtId,
       };
     } catch (e) {
@@ -120,14 +146,16 @@ export class ScramblerService extends AbstractService implements IScramblerServi
     token: string
   ): Promise<NScramblerService.JwtTokenPayload<T>> {
     try {
-      return new Promise<NScramblerService.JwtTokenPayload<T>>((resolve, reject) => {
-        if (!this._config) throw this._throwConfigError();
+      return new Promise<NScramblerService.JwtTokenPayload<T>>(
+        (resolve, reject) => {
+          if (!this._config) throw this._throwConfigError();
 
-        jwt.verify(token, this._config.secret, (err, data) => {
-          if (err) return reject(err);
-          return resolve(data as NScramblerService.JwtTokenPayload<T>);
-        });
-      });
+          jwt.verify(token, this._config.secret, (err, data) => {
+            if (err) return reject(err);
+            return resolve(data as NScramblerService.JwtTokenPayload<T>);
+          });
+        }
+      );
     } catch (e) {
       throw e;
     }
@@ -138,8 +166,10 @@ export class ScramblerService extends AbstractService implements IScramblerServi
     const alg = algorithm ?? (this._config.defaultAlgorithm as Jwt.Algorithm);
 
     try {
-      const bytes = crypto.randomBytes(this._config.randomBytes).toString('hex');
-      return crypto.createHash(alg).update(bytes).digest('hex');
+      const bytes = crypto
+        .randomBytes(this._config.randomBytes)
+        .toString("hex");
+      return crypto.createHash(alg).update(bytes).digest("hex");
     } catch (e) {
       throw e;
     }
@@ -155,7 +185,10 @@ export class ScramblerService extends AbstractService implements IScramblerServi
     }
   }
 
-  public async comparePassword(candidatePassword: string, userPassword: string): Promise<boolean> {
+  public async comparePassword(
+    candidatePassword: string,
+    userPassword: string
+  ): Promise<boolean> {
     try {
       return await bcrypt.compare(candidatePassword, userPassword);
     } catch (e) {
@@ -164,6 +197,6 @@ export class ScramblerService extends AbstractService implements IScramblerServi
   }
 
   private _throwConfigError(): Error {
-    return new Error('Config not set');
+    return new Error("Config not set");
   }
 }

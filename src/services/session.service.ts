@@ -1,14 +1,16 @@
-import { Packages } from '@Packages';
+import { Packages } from "@Packages";
 const { injectable, inject } = Packages.inversify;
 const { v4 } = Packages.uuid;
-import { CoreSymbols } from '@CoreSymbols';
-import { AbstractService } from './abstract.service';
-import { container } from '../ioc/core.ioc';
-import { Guards } from '@Guards';
-import { CoreErrors } from '../common/core-errors';
+import { CoreSymbols } from "@CoreSymbols";
+import { AbstractService } from "./abstract.service";
+import { container } from "../ioc/core.ioc";
+import { Guards } from "@Guards";
+import { CoreErrors } from "../common/core-errors";
 
 import {
-  Ws, Nullable, UnknownObject,
+  Ws,
+  Nullable,
+  UnknownObject,
   IContextService,
   IDiscoveryService,
   ILoggerService,
@@ -17,7 +19,9 @@ import {
   ISessionService,
   NScramblerService,
   NSessionService,
-} from '@Core/Types';
+  AnyObject,
+  ISchemaService,
+} from "@Core/Types";
 
 @injectable()
 export class SessionService extends AbstractService implements ISessionService {
@@ -33,7 +37,9 @@ export class SessionService extends AbstractService implements ISessionService {
     @inject(CoreSymbols.ScramblerService)
     protected readonly _scramblerService: IScramblerService,
     @inject(CoreSymbols.ContextService)
-    protected readonly _contextService: IContextService
+    protected readonly _contextService: IContextService,
+    @inject(CoreSymbols.SchemaService)
+    private readonly _schemaService: ISchemaService
   ) {
     super();
   }
@@ -46,7 +52,7 @@ export class SessionService extends AbstractService implements ISessionService {
 
   private get _storage(): NSessionService.ConnectionStorage {
     if (!this._connections) {
-      throw new Error('Connection storage not initialize');
+      throw new Error("Connection storage not initialize");
     }
 
     return this._connections;
@@ -54,7 +60,7 @@ export class SessionService extends AbstractService implements ISessionService {
 
   private get _conf(): NSessionService.Config {
     if (!this._config) {
-      throw new Error('Session service config not set');
+      throw new Error("Session service config not set");
     }
 
     return this._config;
@@ -63,7 +69,7 @@ export class SessionService extends AbstractService implements ISessionService {
   protected async init(): Promise<boolean> {
     this._setConfig();
     if (!this._config) {
-      throw new Error('Config not set');
+      throw new Error("Config not set");
     }
     this._connections = new Map<string, NSessionService.Connection>();
 
@@ -76,16 +82,18 @@ export class SessionService extends AbstractService implements ISessionService {
   }
 
   public async openHttpSession<T extends UnknownObject>(
-    userId: string,
     payload: T
   ): Promise<string> {
     const sessionId = v4();
-    const id = this._buildRedisKey({ user: { id: userId }, sessionId: sessionId });
 
     try {
       await container
         .get<IRedisProvider>(CoreSymbols.RedisProvider)
-        .setWithExpire(id, payload, this._scramblerService.accessExpiredAt);
+        .setWithExpire(
+          sessionId,
+          payload,
+          this._scramblerService.accessExpiredAt
+        );
 
       return sessionId;
     } catch (e) {
@@ -96,7 +104,9 @@ export class SessionService extends AbstractService implements ISessionService {
   public async getHttpSessionCount(userId: string): Promise<number> {
     try {
       const id = this._buildRedisKey({ user: { id: userId, count: true } });
-      return await container.get<IRedisProvider>(CoreSymbols.RedisProvider).getItemCount(id);
+      return await container
+        .get<IRedisProvider>(CoreSymbols.RedisProvider)
+        .getItemCount(id);
     } catch (e) {
       throw e;
     }
@@ -106,26 +116,42 @@ export class SessionService extends AbstractService implements ISessionService {
     userId: string,
     sessionId: string
   ): Promise<Nullable<T>> {
-    const id = this._buildRedisKey({ user: { id: userId }, sessionId: sessionId });
+    const id = this._buildRedisKey({
+      user: { id: userId },
+      sessionId: sessionId,
+    });
 
     try {
-      return await container.get<IRedisProvider>(CoreSymbols.RedisProvider).getItemInfo<T>(id);
+      return await container
+        .get<IRedisProvider>(CoreSymbols.RedisProvider)
+        .getItemInfo<T>(id);
     } catch (e) {
       throw e;
     }
   }
 
-  public async deleteHttpSession(userId: string, sessionId: string): Promise<void> {
+  public async deleteHttpSession(
+    userId: string,
+    sessionId: string
+  ): Promise<void> {
     try {
-      const id = this._buildRedisKey({ user: { id: userId }, sessionId: sessionId });
+      const id = this._buildRedisKey({
+        user: { id: userId },
+        sessionId: sessionId,
+      });
 
-      await container.get<IRedisProvider>(CoreSymbols.RedisProvider).deleteItem(id);
+      await container
+        .get<IRedisProvider>(CoreSymbols.RedisProvider)
+        .deleteItem(id);
     } catch (e) {
       throw e;
     }
   }
 
-  public setWsConnection(ws: Ws.WebSocket, connection: NSessionService.ConnectionDetails) {
+  public setWsConnection(
+    ws: Ws.WebSocket,
+    connection: NSessionService.ConnectionDetails
+  ) {
     const uuid = v4();
 
     ws.uuid = uuid;
@@ -142,62 +168,86 @@ export class SessionService extends AbstractService implements ISessionService {
     this._sendHandshake(ws, {
       serverTag: this._discoveryService.serverTag,
       connectionId: uuid,
-      service: 'sys-admin',
+      services: Array.from(this._schemaService.schema.keys()),
     });
 
-    ws.on('message', async (data: Ws.RawData): Promise<void> => {
+    const event = this._events;
+    const send = this._send;
+    ws.on("message", async function (data: Ws.RawData) {
       try {
         const structure = JSON.parse(data.toString());
 
-        if (Guards.isSocketStructure(structure)) {
+        if (Guards.isSocketStructure<never>(structure)) {
           try {
             if (Guards.isSessionEvent(structure.event)) {
-              await this._events[structure.event](ws, structure.payload);
+              await event[structure.event](ws, structure.payload);
             } else {
-              this._send(
+              send(
                 ws,
-                'server:handshake:error',
+                "handshake.error",
                 CoreErrors.SessionService.INVALID_EVENT_TYPE
               );
+              return;
             }
           } catch (e) {
             console.log(e);
           }
         } else {
-          this._send(
+          send(
             ws,
-            'server:handshake:error',
+            "handshake.error",
             CoreErrors.SessionService.INVALID_DATA_STRUCTURE
           );
+          return;
         }
       } catch (e) {
-        this._send(ws, 'server:handshake:error', CoreErrors.SessionService.INVALID_DATA_STRUCTURE);
+        send(
+          ws,
+          "handshake.error",
+          CoreErrors.SessionService.INVALID_DATA_STRUCTURE
+        );
+        return;
       }
     });
   }
 
   private _events: NSessionService.EventRoutines = {
-    [NSessionService.ClientEvent.HANDSHAKE]: async (ws, payload): Promise<void> => {
+    [NSessionService.ClientEvent.HANDSHAKE]: async (
+      ws,
+      payload
+    ): Promise<void> => {
       this._listenHandshake(ws, payload);
     },
-    [NSessionService.ClientEvent.AUTHENTICATE]: async (ws, payload): Promise<void> => {
+    [NSessionService.ClientEvent.AUTHENTICATE]: async (
+      ws,
+      payload
+    ): Promise<void> => {
       await this._listenAuthenticate(ws, payload);
     },
-    [NSessionService.ClientEvent.UPLOAD_PAGE]: async (ws, payload): Promise<void> => {
+    [NSessionService.ClientEvent.UPLOAD_PAGE]: async (
+      ws,
+      payload
+    ): Promise<void> => {
       this._listenUploadPage(ws, payload);
     },
-    [NSessionService.ClientEvent.SESSION_TO_SESSION]: async (ws, payload): Promise<void> => {
+    [NSessionService.ClientEvent.SESSION_TO_SESSION]: async (
+      ws,
+      payload
+    ): Promise<void> => {
       await this._listenSessionToSession(ws, payload);
     },
     [NSessionService.ClientEvent.BROADCAST_TO_SERVICE]: async (
       ws: Ws.WebSocket,
       payload: unknown
     ): Promise<void> => {
-      throw new Error('Event not implemented');
+      throw new Error("Event not implemented");
     },
   };
 
-  private _listenHandshake(ws: Ws.WebSocket, payload: NSessionService.ClientHandshakePayload) {
+  private _listenHandshake(
+    ws: Ws.WebSocket,
+    payload: NSessionService.ClientHandshakePayload
+  ) {
     const connection = this._getConnection(ws.uuid);
     connection.auth = false;
     connection.clientTag = payload.clientTag;
@@ -210,7 +260,11 @@ export class SessionService extends AbstractService implements ISessionService {
     ws: Ws.WebSocket,
     data: NSessionService.ClientAuthenticatePayload
   ): Promise<void> {
-    const redisProvider = container.get<IRedisProvider>(CoreSymbols.RedisProvider);
+    console.log(data);
+    const redisProvider = container.get<IRedisProvider>(
+      CoreSymbols.RedisProvider
+    );
+
     try {
       const { payload } =
         await this._scramblerService.verifyToken<NScramblerService.SessionIdentifiers>(
@@ -218,13 +272,16 @@ export class SessionService extends AbstractService implements ISessionService {
         );
 
       const connection = this._getConnection(ws.uuid);
-      const id = this._buildRedisKey({
-        user: { id: payload.userId, count: false },
-        sessionId: payload.sessionId,
-      });
 
-      const sessionInfo = await redisProvider.getItemInfo(id);
-      await redisProvider.setItemField(id, 'connectionId', ws.uuid);
+      const sessionInfo = await redisProvider.getItemInfo(payload.sessionId);
+
+      const newKey = `${payload.sessionId}:${ws.uuid}`;
+      await redisProvider.renameKey(
+        payload.sessionId,
+        `${payload.sessionId}:${ws.uuid}`
+      );
+
+      await redisProvider.setItemField(newKey, "connectionId", ws.uuid);
 
       if (sessionInfo) {
         connection.auth = true;
@@ -236,13 +293,21 @@ export class SessionService extends AbstractService implements ISessionService {
         ws.sessionId = payload.sessionId;
         ws.userId = payload.userId;
         ws.sessionInfo = sessionInfo;
+
+        this._send(ws, "authenticate", {
+          status: "OK",
+        });
       } else {
-        this._send(ws, 'server:authenticate:error', {
-          code: '1001.1003',
-          message: 'User not unauthorized',
+        this._send(ws, "authenticate.error", {
+          code: "1001.1003",
+          message: "User not unauthorized",
         });
       }
     } catch (e) {
+      this._send(ws, "authenticate.error", {
+        code: "1001.1004",
+        message: "jwt token has been expired",
+      });
       throw e;
     }
   }
@@ -251,27 +316,33 @@ export class SessionService extends AbstractService implements ISessionService {
     this._storage.delete(payload.connectionId);
   }
 
-  private async _listenSessionToSession<T extends UnknownObject = UnknownObject>(
+  private async _listenSessionToSession<
+    T extends UnknownObject = UnknownObject
+  >(
     socket: Ws.WebSocket,
     payload: NSessionService.ClientSessionToSessionPayload<T>
   ): Promise<void> {
     try {
-      const id = this._buildRedisKey({ user: { id: payload.corePayload.userId, count: true } });
-      const userInfo = await container
-        .get<IRedisProvider>(CoreSymbols.RedisProvider)
-        .getItemByUserId(id);
+      console.log(payload);
 
-      const connection = this._getConnection(socket.uuid);
-
-      connection.socket.send(
-        JSON.stringify({
-          event: 'server:session:to:session',
-          payload: {
-            event: payload.event,
-            payload: payload.schemaPayload,
-          },
-        })
-      );
+      // const id = this._buildRedisKey({
+      //   user: { id: payload.userId, count: true },
+      // });
+      // const userInfo = await container
+      //   .get<IRedisProvider>(CoreSymbols.RedisProvider)
+      //   .getItemByUserId(id);
+      //
+      // const connection = this._getConnection(socket.uuid);
+      //
+      // connection.socket.send(
+      //   JSON.stringify({
+      //     event: "session:to:session",
+      //     payload: {
+      //       event: payload.event,
+      //       payload: payload.payload,
+      //     },
+      //   })
+      // );
     } catch (e) {
       console.log(e);
     }
@@ -281,14 +352,16 @@ export class SessionService extends AbstractService implements ISessionService {
     socket: Ws.WebSocket,
     payload: NSessionService.ServerHandshakePayload
   ): void {
-    this._send(socket, 'server:handshake', payload);
+    this._send(socket, "handshake", payload);
   }
 
   public async sendSessionToSession<T>(
     event: string,
     payload: NSessionService.SessionToSessionPayload
   ): Promise<void> {
-    const id = this._buildRedisKey({ user: { id: payload.recipientId, count: true } });
+    const id = this._buildRedisKey({
+      user: { id: payload.recipientId, count: true },
+    });
     const sessionInfo = await container
       .get<IRedisProvider>(CoreSymbols.RedisProvider)
       .getItemByUserId<NSessionService.ConnectionId>(id);
@@ -296,34 +369,38 @@ export class SessionService extends AbstractService implements ISessionService {
     if (sessionInfo) {
       const connection = this._storage.get(sessionInfo.connectionId);
       if (!connection) {
-        throw new Error('Connection not found');
+        throw new Error("Connection not found");
       }
 
-      this._send(connection.socket, 'server:session:to:session', {
+      this._send(connection.socket, "session:to:session", {
         event: event,
         payload: payload.payload,
       });
     }
   }
 
-  private _send<T>(socket: Ws.WebSocket, event: NSessionService.ServerEvent, payload: T): void {
+  private _send<T>(
+    socket: Ws.WebSocket,
+    event: NSessionService.ServerEvent,
+    payload: T
+  ): void {
     socket.send(JSON.stringify({ event, payload }));
   }
 
   private _buildRedisKey(options?: NSessionService.RedisKeyOptions): string {
-    let id = 'service:' + this._conf.serverTag;
+    let id = "service:" + this._conf.serverTag;
     if (options) {
       if (options.user) {
-        id += ':userId:' + options.user.id;
+        id += ":userId:" + options.user.id;
         if (options.user.count) {
-          id += ':*';
+          id += ":*";
         }
       }
       if (options.sessionId) {
-        id += ':sessionId:' + options.sessionId;
+        id += ":sessionId:" + options.sessionId;
       }
     } else {
-      id += ':*';
+      id += ":*";
     }
 
     return id;
@@ -332,7 +409,7 @@ export class SessionService extends AbstractService implements ISessionService {
   private _getConnection(uuid: string) {
     const connection = this._storage.get(uuid);
     if (!connection) {
-      throw new Error('Connection not found. Login again');
+      throw new Error("Connection not found. Login again");
     }
 
     return connection;

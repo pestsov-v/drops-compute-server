@@ -1,7 +1,11 @@
-import { Nullable, UnknownObject } from '../packages/packages';
+import { Nullable, UnknownObject } from "../packages/packages";
 
 export interface IRedisProvider {
-  setWithExpire<T extends UnknownObject>(id: string, info: T, ttl: number): Promise<void>;
+  setWithExpire<T extends UnknownObject>(
+    id: string,
+    info: T,
+    ttl: number
+  ): Promise<void>;
   getItemInfo<T extends UnknownObject>(id: string): Promise<Nullable<T>>;
   getItemCount(id: string): Promise<number>;
   getItemByUserId<
@@ -21,6 +25,7 @@ export interface IRedisProvider {
     value: T[keyof T]
   ): Promise<void>;
   deleteItem(id: string): Promise<void>;
+  renameKey(oldKey: string, newKey: string): Promise<"OK">;
 }
 
 export namespace NRedisProvider {}

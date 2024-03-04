@@ -1,0 +1,10 @@
+{
+  "connectors": {
+    "redis": {
+      "enable": true
+    },
+    "typeorm": {
+      "enable": true
+    }
+  }
+}

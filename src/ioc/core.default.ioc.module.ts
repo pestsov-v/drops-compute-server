@@ -10,10 +10,7 @@ import {
   SchemaLoader,
   SpecificationLoader,
 } from "../loaders";
-import {
-  SpecificationBaseOperation,
-  ValidatorBaseOperation,
-} from "../base-operations";
+import { SpecificationBaseOperation } from "../base-operations";
 import {
   FunctionalityAgent,
   SchemaAgent,
@@ -41,7 +38,6 @@ import {
   MongodbProvider,
   SchemaProvider,
   ExceptionProvider,
-  ValidatorProvider,
   TypeormProvider,
   RedisProvider,
 } from "../providers";
@@ -63,8 +59,6 @@ import {
   ISchemaProvider,
   ISchemaService,
   IComputeConnector,
-  IValidatorProvider,
-  IValidatorBaseOperation,
   ITypeormConnector,
   ITypeormProvider,
   IRedisConnector,
@@ -148,9 +142,6 @@ export const CoreModule = new ContainerModule(
     bind<ITypeormProvider>(CoreSymbols.TypeormProvider)
       .to(TypeormProvider)
       .inTransientScope();
-    bind<IValidatorProvider>(CoreSymbols.ValidatorProvider)
-      .to(ValidatorProvider)
-      .inTransientScope();
     bind<IExceptionProvider>(CoreSymbols.ExceptionProvider)
       .to(ExceptionProvider)
       .inTransientScope();
@@ -202,9 +193,6 @@ export const CoreModule = new ContainerModule(
       .inSingletonScope();
 
     // base-operations
-    bind<IValidatorBaseOperation>(CoreSymbols.ValidatorBaseOperation)
-      .to(ValidatorBaseOperation)
-      .inTransientScope();
     bind<ISpecificationBaseOperation>(CoreSymbols.SpecificationBaseOperation)
       .to(SpecificationBaseOperation)
       .inTransientScope();

@@ -27,6 +27,7 @@ import {
   ILocalizationService,
   IIntegrationAgent,
   ModeObject,
+  NSchemaService,
 } from "@Core/Types";
 import { ResponseType, SchemaHeaders, StatusCode } from "@common";
 import { Helpers } from "../../utility/helpers";
@@ -73,7 +74,7 @@ export class FastifyHttpAdapter
       ),
       host: this._discoveryService.getString(
         "adapters.framework.host",
-        "localhost"
+        "0.0.0.0"
       ),
       port: this._discoveryService.getNumber("adapters.framework.port", 11000),
       urls: {
@@ -132,7 +133,7 @@ export class FastifyHttpAdapter
         }
       });
     } catch (e) {
-      console.log(e);
+      console.error(e);
     }
   }
 
@@ -225,7 +226,7 @@ export class FastifyHttpAdapter
         .send(this._getNotFoundStructure("domain"));
     }
 
-    if (!domain.routes || !domain.controllers) {
+    if (!domain.routes) {
       return res.status(StatusCode.BAD_REQUEST).send({
         responseType: ResponseType.FAIL,
         data: {
@@ -240,16 +241,6 @@ export class FastifyHttpAdapter
       return res
         .status(StatusCode.BAD_REQUEST)
         .send(this._getNotFoundStructure("action"));
-    }
-
-    const handler = domain.controllers.get(action.handler);
-    if (!handler) {
-      return res.status(StatusCode.BAD_REQUEST).send({
-        responseType: ResponseType.FAIL,
-        data: {
-          message: "Domain does not have any routes",
-        },
-      });
     }
 
     const inputParams: string[] = [];
@@ -321,46 +312,69 @@ export class FastifyHttpAdapter
 
     try {
       await this._contextService.storage.run(store, async () => {
-        const context: NAbstractHttpAdapter.Context<UnknownObject> = {
-          storage: {
-            store: store,
-          },
-          packages: {},
-          sessionInfo: { auth: false },
+        const context: NAbstractHttpAdapter.Context<
+          any,
+          any,
+          "private:organization"
+        > = {
+          store: store,
+          user: {},
+          organization: {},
         };
 
-        if (action.isPrivateUser) {
-          const accessToken = req.headers["x-user-access-token"];
-          if (!accessToken) {
-            return res.status(StatusCode.FORBIDDEN).send({
-              responseType: ResponseType.AUTHENTICATED,
-              data: {
-                message: "Missed user access token",
-              },
-            });
-          }
-          const jwtPayload = await this._scramblerService.verifyToken<
-            UnknownObject & NScramblerService.SessionIdentifiers
-          >(accessToken);
+        switch (action.scope) {
+          case "public:route":
+            break;
+          case "private:user":
+            const accessToken = req.headers["x-user-access-token"];
+            if (!accessToken) {
+              return res.status(StatusCode.FORBIDDEN).send({
+                responseType: ResponseType.AUTHENTICATED,
+                data: {
+                  message: "Missed user access token",
+                },
+              });
+            }
+            const jwtPayload = await this._scramblerService.verifyToken<
+              UnknownObject & NScramblerService.SessionIdentifiers
+            >(accessToken);
 
-          const sessionInfo = await this._sessionService.getHttpSessionInfo(
-            jwtPayload.payload.userId,
-            jwtPayload.payload.sessionId
-          );
-
-          if (sessionInfo) {
-            context.sessionInfo = {
-              auth: true,
-              info: {
-                ...sessionInfo,
-                userId: jwtPayload.payload.userId,
-                sessionId: jwtPayload.payload.sessionId,
-              },
+            context.user = {
+              userId: jwtPayload.payload.userId,
+              sessionId: jwtPayload.payload.sessionId,
+              ...(await this._sessionService.getHttpSessionInfo(
+                jwtPayload.payload.userId,
+                jwtPayload.payload.sessionId
+              )),
             };
-          }
+            break;
+          case "private:organization":
+            const accessToken2 = req.headers["x-user-access-token"];
+            if (!accessToken2) {
+              return res.status(StatusCode.FORBIDDEN).send({
+                responseType: ResponseType.AUTHENTICATED,
+                data: {
+                  message: "Missed user access token",
+                },
+              });
+            }
+            const jwtPayload2 = await this._scramblerService.verifyToken<
+              UnknownObject & NScramblerService.SessionIdentifiers
+            >(accessToken2);
+
+            context.user = {
+              userId: jwtPayload2.payload.userId,
+              sessionId: jwtPayload2.payload.sessionId,
+              ...(await this._sessionService.getHttpSessionInfo(
+                jwtPayload2.payload.userId,
+                jwtPayload2.payload.sessionId
+              )),
+            };
+
+            break;
         }
 
-        const result = await handler(
+        const result = await action.handler(
           {
             method: req.method,
             headers: req.headers,
@@ -412,7 +426,7 @@ export class FastifyHttpAdapter
         }
       });
     } catch (e) {
-      console.log(e);
+      console.error(e);
       if (Guards.isValidationError(e)) {
         const response = container
           .get<IExceptionProvider>(CoreSymbols.ExceptionProvider)

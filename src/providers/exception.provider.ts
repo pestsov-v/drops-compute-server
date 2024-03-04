@@ -1,6 +1,6 @@
-import { Packages } from '@Packages';
+import { Packages } from "@Packages";
 const { injectable, inject } = Packages.inversify;
-import { ResponseType, StatusCode } from '@common';
+import { ResponseType, StatusCode } from "@common";
 
 import {
   UTCDate,
@@ -11,17 +11,17 @@ import {
   ISchemaProvider,
   IValidatorError,
   NExceptionProvider,
-  NValidatorProvider,
   SchemaExceptionErrorOptions,
-} from '@Core/Types';
-import { container } from '../ioc/core.ioc';
-import { CoreSymbols } from '@CoreSymbols';
-import { Helpers } from '../utility/helpers';
+  NSchemaService,
+} from "@Core/Types";
+import { container } from "../ioc/core.ioc";
+import { CoreSymbols } from "@CoreSymbols";
+import { Helpers } from "../utility/helpers";
 
 class ValidatorError extends Error implements IValidatorError {
-  public readonly errors: NValidatorProvider.ErrorResult[];
+  public readonly errors: NSchemaService.ValidateErrors;
 
-  constructor(message: string, errors: NValidatorProvider.ErrorResult[]) {
+  constructor(message: string, errors: NSchemaService.ValidateErrors) {
     super(message);
 
     this.errors = errors;
@@ -55,7 +55,10 @@ class CoreError extends Error implements ICoreError {
 
 export class SchemaCatchError extends Error {}
 
-export class SchemaExceptionError extends Error implements ISchemaExceptionError {
+export class SchemaExceptionError
+  extends Error
+  implements ISchemaExceptionError
+{
   public readonly statusCode: number;
   public readonly responseType: string;
   public readonly isNotResource: boolean | undefined;
@@ -85,7 +88,12 @@ export class SchemaExceptionError extends Error implements ISchemaExceptionError
     } else {
       message = container
         .get<ISchemaProvider>(CoreSymbols.SchemaProvider)
-        .getAnotherResource(options.domain, msg, options.substitutions, options.language);
+        .getAnotherResource(
+          options.domain,
+          msg,
+          options.substitutions,
+          options.language
+        );
       console.log(message);
     }
     super(message);
@@ -112,11 +120,15 @@ export class ExceptionProvider implements IExceptionProvider {
     private readonly _contextService: IContextService
   ) {}
 
-  public throwValidation(errors: NValidatorProvider.ErrorResult[]): IValidatorError {
-    return new ValidatorError('Validation error', errors);
+  public throwValidation(
+    errors: NSchemaService.ValidateErrors
+  ): IValidatorError {
+    return new ValidatorError("Validation error", errors);
   }
 
-  public resolveValidation(e: IValidatorError): NExceptionProvider.ValidationData {
+  public resolveValidation(
+    e: IValidatorError
+  ): NExceptionProvider.ValidationData {
     return {
       statusCode: StatusCode.BAD_REQUEST,
       payload: {
@@ -126,7 +138,10 @@ export class ExceptionProvider implements IExceptionProvider {
     };
   }
 
-  public throwError(message: string, options: NExceptionProvider.CoreError): ICoreError {
+  public throwError(
+    message: string,
+    options: NExceptionProvider.CoreError
+  ): ICoreError {
     return new CoreError(message, options);
   }
 
@@ -155,7 +170,9 @@ export class ExceptionProvider implements IExceptionProvider {
     return new SchemaExceptionError(msg, details);
   }
 
-  public resolveSchemaException(e: ISchemaExceptionError): NExceptionProvider.SchemaExceptionData {
+  public resolveSchemaException(
+    e: ISchemaExceptionError
+  ): NExceptionProvider.SchemaExceptionData {
     const payload: NExceptionProvider.SchemaExceptionPayload = {
       responseType: e.responseType,
       time: e.responseTime,
@@ -163,8 +180,8 @@ export class ExceptionProvider implements IExceptionProvider {
         message: e.message,
       },
     };
-    if (e.showCoreTrace && e.coreTrace) payload.data['trace'] = e.coreTrace;
-    if (e.errorCode) payload.data['errorCode'] = e.errorCode;
+    if (e.showCoreTrace && e.coreTrace) payload.data["trace"] = e.coreTrace;
+    if (e.errorCode) payload.data["errorCode"] = e.errorCode;
 
     return {
       headers: e.headers,

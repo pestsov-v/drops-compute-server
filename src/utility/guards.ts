@@ -1,4 +1,5 @@
 import {
+  AnyObject,
   ISchemaExceptionError,
   IValidatorError,
   NAbstractHttpAdapter,
@@ -33,9 +34,9 @@ export class Guards {
     return typeof x === "string";
   }
 
-  public static isSocketStructure(
-    x: NSessionService.ClientData
-  ): x is NSessionService.ClientData {
+  public static isSocketStructure<T>(
+    x: NSessionService.ClientData<T>
+  ): x is NSessionService.ClientData<T> {
     return (
       typeof x === "object" && x !== null && "event" in x && "payload" in x
     );
@@ -53,14 +54,7 @@ export class Guards {
   }
 
   public static isJsonResponse = (x: unknown): x is JsonFormatResponse => {
-    return (
-      typeof x === "object" &&
-      x !== null &&
-      "type" in x &&
-      typeof x["type"] === "string" &&
-      "data" in x &&
-      typeof x["data"] !== "undefined"
-    );
+    return typeof x === "object" && x !== null && "data" in x;
   };
 
   public static isRedirectResponse = (

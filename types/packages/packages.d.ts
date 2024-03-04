@@ -1,27 +1,25 @@
-import events from 'events';
-import async_hooks from 'async_hooks';
-import http from 'http';
-import https from 'https';
+import events from "events";
+import async_hooks from "async_hooks";
+import http from "http";
+import https from "https";
 
-import nconf from 'nconf';
-import winston from 'winston';
-import colors from 'colors';
-import inversify from 'inversify';
-import fastify from 'fastify';
-import express from 'express';
-import mongoose from 'mongoose';
-import joi from 'joi';
-import typeorm from 'typeorm';
-import { Redis, RedisOptions } from 'ioredis';
-import jwt from 'jsonwebtoken';
-import nodemailer from 'nodemailer';
-import ws from 'ws';
-import { OpenAPIV3 } from 'openapi-types';
-import OpenAPISchemaValidator from 'openapi-schema-validator';
+import nconf from "nconf";
+import winston from "winston";
+import colors from "colors";
+import inversify from "inversify";
+import fastify from "fastify";
+import express from "express";
+import mongoose from "mongoose";
+import joi from "joi";
+import typeorm from "typeorm";
+import { Redis, RedisOptions } from "ioredis";
+import jwt from "jsonwebtoken";
+import nodemailer from "nodemailer";
+import ws from "ws";
+import { OpenAPIV3 } from "openapi-types";
+import OpenAPISchemaValidator from "openapi-schema-validator";
 
-import { StringObject, UnknownObject } from '../utility';
-import {EntitySchemaColumnOptions} from "typeorm/entity-schema/EntitySchemaColumnOptions";
-import {EntitySchemaRelationOptions} from "typeorm/entity-schema/EntitySchemaRelationOptions";
+import { StringObject, UnknownObject } from "../utility";
 
 export namespace Inversify {
   export namespace interfaces {
@@ -65,12 +63,12 @@ export namespace Fastify {
     HEADERS extends StringObject = StringObject
   > = {
     url: string;
-    headers: HEADERS & fastify.FastifyRequest['headers'];
-    method: fastify.FastifyRequest['method'];
+    headers: HEADERS & fastify.FastifyRequest["headers"];
+    method: fastify.FastifyRequest["method"];
     path: string;
     params: PARAMS;
     body: BODY;
-    query: fastify.FastifyRequest['query'];
+    query: fastify.FastifyRequest["query"];
   };
 }
 
@@ -83,7 +81,8 @@ export namespace Express {
 export namespace Mongoose {
   export type Mongoose = mongoose.Mongoose;
   export type AnyObject = mongoose.AnyObject;
-  export type THydratedDocumentType<DocType> = mongoose.HydratedDocument<DocType>;
+  export type THydratedDocumentType<DocType> =
+    mongoose.HydratedDocument<DocType>;
   export type ConnectionOptions = mongoose.ConnectOptions;
   export type SchemaDefinition<T> = mongoose.SchemaDefinition<T>;
   export type DeleteResult = mongodb.DeleteResult;
@@ -93,9 +92,12 @@ export namespace Mongoose {
   export type HydrateOptions = { setters?: boolean };
   export type AggregateOptions = mongoose.AggregateOptions;
   export type UpdateQuery<TRawDocType> = mongoose.UpdateQuery<TRawDocType>;
-  export type UpdateWithAggregationPipeline = mongoose.UpdateWithAggregationPipeline;
+  export type UpdateWithAggregationPipeline =
+    mongoose.UpdateWithAggregationPipeline;
   export type PopulateOptions = mongoose.PopulateOptions;
-  export type AggregateResult<TRowDocType> = mongoose.Aggregate<Array<TRowDocType>>;
+  export type AggregateResult<TRowDocType> = mongoose.Aggregate<
+    Array<TRowDocType>
+  >;
   export type AnyKeys<T> = mongoose.AnyKeys<T>;
   export type Docs<TRawDocType, DocContents = AnyKeys<TRawDocType>> = Array<
     TRawDocType | DocContents
@@ -103,12 +105,25 @@ export namespace Mongoose {
   export type InsertManyOptions = mongoose.InsertManyOptions & { lean: true };
   export type SaveOptions = mongoose.SaveOptions;
   export type FilterQuery<TRawDocType> = mongoose.FilterQuery<TRawDocType>;
-  export type ProjectionType<TRawDocType> = mongoose.ProjectionType<TRawDocType>;
+  export type ProjectionType<TRawDocType> =
+    mongoose.ProjectionType<TRawDocType>;
   export type QueryOptions<TRawDocType> = mongoose.QueryOptions<TRawDocType>;
-  export type QueryWithHelpers<ResultType, DocType, THelpers, RawDocType, QueryOp> =
-    mongoose.QueryWithHelpers<ResultType, DocType, THelpers, RawDocType, QueryOp>;
+  export type QueryWithHelpers<
+    ResultType,
+    DocType,
+    THelpers,
+    RawDocType,
+    QueryOp
+  > = mongoose.QueryWithHelpers<
+    ResultType,
+    DocType,
+    THelpers,
+    RawDocType,
+    QueryOp
+  >;
 
-  export type InsertManyResult<TRawDocType = TRawDocType> = Mongoose.InsertManyResult<TRawDocType>;
+  export type InsertManyResult<TRawDocType = TRawDocType> =
+    Mongoose.InsertManyResult<TRawDocType>;
   export type HydrateResult<
     TRawDocType,
     THydratedDocumentType = Mongoose.THydratedDocumentType<TRawDocType>
@@ -126,7 +141,7 @@ export namespace Mongoose {
     THydratedDocumentType,
     TQueryHelpers,
     TRawDocType,
-    'countDocuments'
+    "countDocuments"
   >;
   export type ExistsResult<
     TRawDocType,
@@ -137,14 +152,20 @@ export namespace Mongoose {
     THydratedDocumentType,
     TQueryHelpers,
     TRawDocType,
-    'exists'
+    "exists"
   >;
   export type FindResult<
     TRawDocType,
     ResultDoc = Mongoose.THydratedDocumentType<TRawDocType>,
     TQueryHelpers = {}
   > = Promise<
-    Mongoose.QueryWithHelpers<Array<ResultDoc>, ResultDoc, TQueryHelpers, TRawDocType, 'find'>
+    Mongoose.QueryWithHelpers<
+      Array<ResultDoc>,
+      ResultDoc,
+      TQueryHelpers,
+      TRawDocType,
+      "find"
+    >
   >;
   export type FindByIdResult<
     TRawDocType,
@@ -155,7 +176,7 @@ export namespace Mongoose {
     THydratedDocumentType,
     TQueryHelpers,
     TRawDocType,
-    'findById'
+    "findById"
   >;
   export type FindByIdAndUpdateResult<
     ResultDoc,
@@ -166,7 +187,7 @@ export namespace Mongoose {
     ResultDoc,
     TQueryHelpers,
     ResultDoc,
-    'findByIdAndUpdate'
+    "findByIdAndUpdate"
   > | null;
   export type FindByIdAndDeleteResult<
     TRawDocType,
@@ -177,7 +198,7 @@ export namespace Mongoose {
     ResultDoc,
     TQueryHelpers,
     TRawDocType,
-    'findByIdAndDelete'
+    "findByIdAndDelete"
   >;
   export type FindOneResult<
     TRawDocType,
@@ -188,7 +209,7 @@ export namespace Mongoose {
     THydratedDocumentType,
     TQueryHelpers,
     TRawDocType,
-    'findOne'
+    "findOne"
   >;
   export type FindOneAndUpdateResult<
     ResultDoc,
@@ -199,7 +220,7 @@ export namespace Mongoose {
     ResultDoc,
     TQueryHelpers,
     ResultDoc,
-    'findOneAndUpdate'
+    "findOneAndUpdate"
   >;
   export type FindOneAndReplaceResult<
     ResultDoc,
@@ -210,7 +231,7 @@ export namespace Mongoose {
     ResultDoc,
     TQueryHelpers,
     ResultDoc,
-    'findOneAndReplace'
+    "findOneAndReplace"
   >;
   export type FindOneAndDeleteResult<
     ResultDoc,
@@ -221,7 +242,7 @@ export namespace Mongoose {
     ResultDoc,
     TQueryHelpers,
     ResultDoc,
-    'findOneAndDelete'
+    "findOneAndDelete"
   >;
   export type ReplaceOneResult<
     ResultDoc,
@@ -232,7 +253,7 @@ export namespace Mongoose {
     ResultDoc,
     TQueryHelpers,
     ResultDoc,
-    'replaceOne'
+    "replaceOne"
   >;
   export type UpdateOneResult<
     ResultDoc,
@@ -244,7 +265,7 @@ export namespace Mongoose {
       ResultDoc,
       TQueryHelpers,
       ResultDoc,
-      'updateOne'
+      "updateOne"
     >
   >;
   export type UpdateManyResult<
@@ -256,7 +277,7 @@ export namespace Mongoose {
     ResultDoc,
     TQueryHelpers,
     ResultDoc,
-    'updateMany'
+    "updateMany"
   >;
   export type DeleteOne<
     TRawDocType,
@@ -267,7 +288,7 @@ export namespace Mongoose {
     THydratedDocumentType,
     TQueryHelpers,
     TRawDocType,
-    'deleteOne'
+    "deleteOne"
   >;
   export type DeleteMany<
     TRawDocType,
@@ -278,7 +299,7 @@ export namespace Mongoose {
     THydratedDocumentType,
     TQueryHelpers,
     TRawDocType,
-    'deleteMany'
+    "deleteMany"
   >;
 }
 
@@ -287,13 +308,14 @@ export namespace Typeorm {
   export type DataSourceOptions = typeorm.DataSourceOptions;
   export type EntitySchema<T> = typeorm.EntitySchema<T>;
   export type EntitySchemaOptions<T> = typeorm.EntitySchemaOptions<T>;
-  export type DatabaseType = Exclude<'oracle', typeorm.DatabaseType>;
+  export type DatabaseType = Exclude<"oracle", typeorm.DatabaseType>;
   export type Repository<T> = typeorm.Repository<T>;
-  export type EntitySchemaColumnOptions = typeorm.EntitySchemaColumnOptions
-  export type EntitySchemaRelationOptions = typeorm.EntitySchemaRelationOptions
+  export type EntitySchemaColumnOptions = typeorm.EntitySchemaColumnOptions;
+  export type EntitySchemaRelationOptions = typeorm.EntitySchemaRelationOptions;
 }
 
 export namespace Joi {
+  export type Joi = joi;
   export type Root = joi.Root;
   export type ObjectSchema<T> = joi.ObjectSchema<T>;
 }
