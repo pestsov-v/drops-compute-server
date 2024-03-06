@@ -7,7 +7,6 @@ import { container } from "../ioc/core.ioc";
 import {
   AnyFunction,
   FnObject,
-  UnknownObject,
   IContextService,
   IFunctionalityAgent,
   ISchemaProvider,
@@ -17,7 +16,7 @@ import {
   ISchemaAgent,
   IBaseOperationAgent,
   IIntegrationAgent,
-  NSchemaLoader,
+  NSchemaService,
 } from "@Core/Types";
 import { Guards } from "@Guards";
 
@@ -45,7 +44,7 @@ export class SchemaProvider implements ISchemaProvider {
       throw new Error("Mongo repository not found");
     }
 
-    class Repository<T> {
+    class Repository {
       private readonly _handlers: Map<string, AnyFunction>;
 
       constructor(handlers: Map<string, AnyFunction>) {
@@ -70,17 +69,16 @@ export class SchemaProvider implements ISchemaProvider {
       }
     }
 
-    return new Repository<T>(mongoRepository) as T;
+    return new Repository(mongoRepository) as T;
   }
 
   public getMongoRepository<T extends FnObject = FnObject>(): T {
     return this.getAnotherMongoRepository<T>(this._contextService.store.domain);
   }
 
-  public getAnotherValidator<T>(
-    name: string,
-    scope: NSchemaLoader.ValidateParamScope
-  ): T {
+  public getAnotherValidator<
+    T extends Record<string, NSchemaService.ValidateObject>
+  >(name: string): NSchemaService.ValidateArgHandlers<T> {
     const store = this._contextService.store;
 
     const service = store.schema.get(store.service);
@@ -98,55 +96,50 @@ export class SchemaProvider implements ISchemaProvider {
     }
 
     class Validator {
-      private readonly _handlers: Map<string, NSchemaLoader.Validator>;
+      private readonly _handlers: Map<
+        string,
+        NSchemaService.ValidateResolverHandler
+      >;
 
-      constructor(handlers: Map<string, NSchemaLoader.Validator>) {
+      constructor(
+        handlers: Map<string, NSchemaService.ValidateResolverHandler>
+      ) {
         this._handlers = handlers;
 
         for (const [name] of this._handlers) {
           Object.defineProperty(this, name, {
-            value: (...args: any[]) => this._runMethod(name, ...args),
+            value: (args: any) => this._runMethod(name, args),
             writable: true,
             configurable: true,
           });
         }
       }
 
-      private _runMethod(method: string, ...args: any[]): any {
-        const handler = this._handlers.get(method);
-        if (handler) {
-          switch (scope) {
-            case "in":
-              if (handler.scope === "in") {
-                return handler.handler(joi, args);
-              } else {
-                throw new Error(
-                  `Validator handler "${handler}" for input params not found in domain "${domain}".`
-                );
-              }
-            case "out":
-              if (handler.scope === "out") {
-                return handler.handler(joi, args);
-              } else {
-                throw new Error(
-                  `Validator handler "${handler}" for output params not found in domain "${domain}".`
-                );
-              }
-          }
-        }
+      private _runMethod(name: string, args: any[]): any {
+        const handler = this._handlers.get(name);
+
+        const schemaAgent = container.get<ISchemaAgent>(
+          CoreSymbols.SchemaAgent
+        );
+
+        const localization = {
+          getResource: schemaAgent.getResource,
+          getAnotherResource: schemaAgent.getAnotherResource,
+        };
+
+        return handler ? handler(joi, localization, args) : undefined;
       }
     }
 
-    return new Validator(validators) as T;
+    return new Validator(
+      validators
+    ) as unknown as NSchemaService.ValidateArgHandlers<T>;
   }
 
-  public getValidator<T extends UnknownObject>(
-    scope: NSchemaLoader.ValidateParamScope
-  ): T {
-    return this.getAnotherValidator<T>(
-      this._contextService.store.domain,
-      scope
-    );
+  public getValidator<
+    T extends Record<string, NSchemaService.ValidateObject>
+  >(): NSchemaService.ValidateArgHandlers<T> {
+    return this.getAnotherValidator<T>(this._contextService.store.domain);
   }
 
   public getAnotherTypeormRepository<T>(name: string): T {

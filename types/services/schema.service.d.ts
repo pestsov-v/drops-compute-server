@@ -1,10 +1,12 @@
-import { Joi } from "@Core/Types";
+import { ISchemaAgent, Joi, KeyStringLiteralBuilder } from "@Core/Types";
 
 import { IAbstractService } from "./abstract.service";
 import { NSchemaLoader, NSpecificationLoader } from "../loaders";
 import { AnyObject, HttpMethod, ModeObject, StringObject } from "../utility";
 import { NAbstractHttpAdapter } from "../adapters";
 import joi from "joi";
+import { container } from "../../src/ioc/core.ioc";
+import { CoreSymbols } from "@CoreSymbols";
 
 export interface ISchemaService extends IAbstractService {
   readonly schema: NSchemaLoader.Services;
@@ -100,23 +102,55 @@ export namespace NSchemaService {
   }>;
 
   export type ValidateHandler = <ARGS>(
-    provider: Joi.Joi,
+    provider: Joi.Root,
     args: ARGS
   ) => ValidateErrors | void;
-  export type ValidateObject<IN = any, OUT = any> = {
-    in: IN;
-    out: OUT;
+  export type ValidateObject<IN = any> = IN;
+
+  export type Localization = {
+    getResource<
+      D extends Record<string, unknown>,
+      SUBS extends Record<string, string> | undefined | null =
+        | Record<string, string>
+        | undefined
+        | null,
+      L extends string = string
+    >(
+      resource: KeyStringLiteralBuilder<D>,
+      substitutions?: SUBS,
+      language?: L
+    ): string;
+    getAnotherResource<
+      D extends string,
+      DICT extends Record<string, unknown>,
+      SUBS extends Record<string, string> | undefined | null =
+        | Record<string, string>
+        | undefined
+        | null,
+      L extends string = string
+    >(
+      domain: D,
+      resource: KeyStringLiteralBuilder<DICT>,
+      substitutions?: SUBS,
+      language?: L
+    ): string;
+  };
+
+  export type ValidateArgHandler<I = any> = (data: I) => ValidateErrors | void;
+  export type ValidateResolverHandler<I = any> = (
+    provider: Joi.Root,
+    localization: Localization,
+    data: I
+  ) => ValidateErrors | void;
+
+  export type ValidateArgHandlers<T extends Record<string, ValidateObject>> = {
+    [K in keyof T]: T[K] extends infer I ? ValidateArgHandler<I> : T[K];
   };
 
   export type ValidateStructureResolver<
     T extends Record<string, ValidateObject>
   > = {
-    [K in keyof T]: T[K] extends { in: infer I; out: infer O }
-      ? {
-          in?: (provider: Joi.Joi, data: I) => ValidateErrors | void;
-          out?: (provider: Joi.Joi, data: O) => ValidateErrors | void;
-        }
-      : T[K];
+    [K in keyof T]: T[K] extends infer I ? ValidateResolverHandler<I> : T[K];
   };
 
   export type ValidatorStructure<
@@ -125,10 +159,7 @@ export namespace NSchemaService {
       | Record<string, ValidateObject>
   > = T extends string
     ? {
-        [key in T]: {
-          in?: ValidateHandler;
-          out?: ValidateHandler;
-        };
+        [key in T]: ValidateHandler;
       }
     : T extends Record<string, ValidateObject>
     ? ValidateStructureResolver<T>

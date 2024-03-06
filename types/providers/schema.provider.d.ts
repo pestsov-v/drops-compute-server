@@ -1,16 +1,16 @@
 import { NSchemaLoader } from "../loaders";
 import { FnObject, UnknownObject } from "../utility";
+import { NSchemaService } from "../services";
 
 export interface ISchemaProvider {
   getMongoRepository<T extends FnObject = FnObject>(): T;
   getAnotherMongoRepository<T extends FnObject = FnObject>(name: string): T;
-  getValidator<T extends UnknownObject>(
-    scope: NSchemaLoader.ValidateParamScope
-  ): T;
-  getAnotherValidator<T>(
-    name: string,
-    scope: NSchemaLoader.ValidateParamScope
-  ): T;
+  getValidator<
+    T extends Record<string, NSchemaService.ValidateObject>
+  >(): NSchemaService.ValidateArgHandlers<T>;
+  getAnotherValidator<T extends Record<string, NSchemaService.ValidateObject>>(
+    name: string
+  ): NSchemaService.ValidateArgHandlers<T>;
   getTypeormRepository<T>(): T;
   getAnotherTypeormRepository<T>(name: string): T;
   getResource(

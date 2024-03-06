@@ -233,31 +233,7 @@ export class SchemaLoader implements ISchemaLoader {
 
     for (const handler in structure) {
       const validator = structure[handler];
-      if (validator.in) {
-        const name = handler + "{{" + "in" + "}}";
-        if (storage.validators.has(name)) {
-          throw new Error(
-            `Validator handler "${handler}" for input params has been exists in domain "${domain}".`
-          );
-        }
-        storage.validators.set(name, {
-          scope: "in",
-          handler: validator.in,
-        });
-      }
-
-      if (validator.out) {
-        const name = handler + "{{" + "out" + "}}";
-        if (storage.validators.has(name)) {
-          throw new Error(
-            `Validator handler "${handler}" for output params has been exists in domain "${domain}".`
-          );
-        }
-        storage.validators.set(name, {
-          scope: "out",
-          handler: validator.out,
-        });
-      }
+      storage.validators.set(handler, validator);
     }
   }
 
@@ -382,7 +358,7 @@ export class SchemaLoader implements ISchemaLoader {
       routes: new Map<string, NSchemaLoader.Route>(),
       helpers: new Map<string, AnyFunction>(),
       mongoRepoHandlers: new Map<string, AnyFunction>(),
-      validators: new Map<string, NSchemaLoader.Validator>(),
+      validators: new Map<string, NSchemaService.ValidateArgHandler>(),
       typeormRepoHandlers: new Map<string, AnyFunction>(),
       dictionaries: new Map<string, NLocalizationService.Dictionary>(),
       emitter: new Map<string, NSchemaLoader.Emitter>(),

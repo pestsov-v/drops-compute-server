@@ -42,12 +42,6 @@ export namespace NSchemaLoader {
     isPrivateOrganization?: boolean;
   };
 
-  export type ValidateParamScope = "in" | "out";
-  export type Validator = {
-    scope: ValidateParamScope;
-    handler: NSchemaService.ValidateHandler;
-  };
-
   export type MongoRepoHandler<
     T extends string = string,
     H extends string = string,
